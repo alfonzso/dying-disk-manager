@@ -10,8 +10,8 @@ import (
 
 func main() {
 
-	filename := flags.Parser()
-	composeFileContentAsString := input.Manager(filename)
+	filename, flag := flags.Parser()
+	cfg := input.Manager(filename, flag)
 
-	os.Exit(ddm.Run(composeFileContentAsString))
+	os.Exit(ddm.Run(cfg))
 }

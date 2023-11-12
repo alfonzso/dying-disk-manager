@@ -17,23 +17,25 @@ var AppUsage = fmt.Sprintf(
 `, AppName,
 )
 
-func Parser() (filename string) {
-
+func Parser() (string, *flag.FlagSet) {
+	var filename string
 	var verbose bool
-	// flag.StringVar(&filename, "f", "", "<filename>")
-	flag.BoolVar(&verbose, "v", false, "Verbose")
+	fff := flag.NewFlagSet("ddm", 1)
 
-	flag.Usage = func() {
+	fff.StringVar(&filename, "f", "", "<filename>")
+	fff.BoolVar(&verbose, "v", false, "Verbose")
+
+	fff.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "%s\n%s\n", AppDescription, AppUsage)
 		fmt.Println("Options:")
 		flag.PrintDefaults()
 	}
 
-	flag.Parse()
+	fff.Parse(os.Args[1:])
 
 	if verbose {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	return filename
+	return filename, fff
 }

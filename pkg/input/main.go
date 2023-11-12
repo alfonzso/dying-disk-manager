@@ -1,18 +1,25 @@
 package input
 
 import (
-	"bufio"
+	"flag"
 	"fmt"
-	"io"
 	"os"
-	"strings"
 
+	"github.com/alfonzso/dying-disk-manager/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
 
-func Manager(filename string) string {
+func Manager(filename string, flag *flag.FlagSet) *config.DDMConfig {
 
-	var in io.Reader
+	f, err := os.Open("config.yaml")
+	if err == nil {
+		log.Debug("Found default config file: config.yaml")
+		defer f.Close()
+		if read, err := config.ReadConf("config.yaml"); err == nil {
+			return read
+		}
+	}
+
 	if filename != "" {
 		log.Debug("filename: ", filename)
 		f, err := os.Open(filename)
@@ -21,53 +28,14 @@ func Manager(filename string) string {
 			os.Exit(1)
 		}
 		defer f.Close()
-		in = f
-	} else {
-		in = os.Stdin
+		if read, err := config.ReadConf("config.yaml"); err == nil {
+			return read
+		}
 	}
 
-	if read := readFromFile(filename, in); len(read) > 0 {
-		return read
-	}
-
-	if read := readFromStdin(in); len(read) > 0 {
-		return read
-	}
-
-	fmt.Println("[ ERROR ] no inpunt given")
+	fmt.Println("[ ERROR ] No config file given")
+	flag.Usage()
 	os.Exit(1)
+	return nil
 
-	return ""
-
-}
-
-func readFromFile(filename string, in io.Reader) string {
-	if filename != "" {
-		log.Debug("reading from file: ", filename)
-		return readFromInput(in)
-	}
-	return ""
-}
-
-func readFromStdin(in io.Reader) string {
-	if stat, _ := os.Stdin.Stat(); (stat.Mode() & os.ModeCharDevice) == 0 {
-		log.Debug("reading from stdin")
-		return readFromInput(in)
-	}
-	return ""
-}
-
-func readFromInput(in io.Reader) string {
-	buf := bufio.NewScanner(in)
-
-	var sss []string
-	for buf.Scan() {
-		sss = append(sss, buf.Text())
-	}
-
-	if err := buf.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "error reading: err:", err)
-	}
-
-	return strings.Join(sss, "\n")
 }

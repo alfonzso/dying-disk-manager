@@ -1,7 +1,6 @@
 common:
   mount:
     enabled: true
-    afterAppStart: true
     periodicCheck:
       enabled: true
       cron: "* * * *"
@@ -19,7 +18,6 @@ disks:
     mount:
       enabled: true
       path: /mnt/disks001 # if mount enabled then its a required config
-      afterAppStart: true
       periodicCheck:
         enabled: true
         cron: "* * * *"
