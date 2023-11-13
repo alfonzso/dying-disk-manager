@@ -10,6 +10,7 @@ check disk available
 check mount path exists
  yes -> error
  ˇˇˇ
+???? already mounted
 ! Mount it !
  ? error -> log & deactivate current disk
 THREAD

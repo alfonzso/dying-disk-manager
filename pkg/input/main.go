@@ -28,7 +28,7 @@ func Manager(filename string, flag *flag.FlagSet) *config.DDMConfig {
 			os.Exit(1)
 		}
 		defer f.Close()
-		if read, err := config.ReadConf("config.yaml"); err == nil {
+		if read, err := config.ReadConf(filename); err == nil {
 			return read
 		}
 	}
