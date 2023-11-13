@@ -1,8 +1,8 @@
 package config
 
 type DDMConfig struct {
-	Common Common  `yaml:"common"`
-	Disks  []Disks `yaml:"disks"`
+	Common Common `yaml:"common"`
+	Disks  []Disk `yaml:"disks"`
 }
 
 type Common struct {
@@ -11,7 +11,7 @@ type Common struct {
 	Repair Repair `yaml:"repair"`
 }
 
-type Disks struct {
+type Disk struct {
 	Name   string         `yaml:"name"`
 	UUID   string         `yaml:"uuid"`
 	Mount  ExtendedMount  `yaml:"mount"`
