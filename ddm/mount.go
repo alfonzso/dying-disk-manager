@@ -32,6 +32,12 @@ const (
 	pathExists
 )
 
+// func (d DiskStat) String() string {
+// 	return fmt.Sprintf(`DiskName |
+// 	`, d.Name, d.Age)
+// }
+
+
 func (d *DDMObserver) GetDiskStat(disk config.Disk) DiskStat {
 	idx := slices.IndexFunc(d.DiskStat, func(c DiskStat) bool { return c.Name == disk.Name })
 	if idx == -1 {
@@ -145,7 +151,7 @@ func (d *DDMObserver) preCheckBeforeMount(disks []config.Disk) {
 func (d *DDMObserver) Mount(c *config.DDMConfig) {
 	for _, disk := range c.Disks {
 		diskStat := d.GetDiskStat(disk)
-		
+
 		if !diskStat.Active {
 			log.WithFields(log.Fields{
 				"disk":   disk.Name,
@@ -173,4 +179,5 @@ func (d *DDMObserver) Run(c *config.DDMConfig) {
 	d.preCheckBeforeMount(c.Disks)
 	d.Mount(c)
 
+	d.Socket()
 }
