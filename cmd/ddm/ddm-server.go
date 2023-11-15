@@ -4,9 +4,9 @@ import (
 	"os"
 
 	"github.com/alfonzso/dying-disk-manager/ddm"
-	"github.com/alfonzso/dying-disk-manager/observer"
 	"github.com/alfonzso/dying-disk-manager/pkg/communication"
 	"github.com/alfonzso/dying-disk-manager/pkg/input"
+	"github.com/alfonzso/dying-disk-manager/pkg/observer"
 )
 
 func main() {
