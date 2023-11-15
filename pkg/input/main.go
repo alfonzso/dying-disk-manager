@@ -1,15 +1,16 @@
 package input
 
 import (
-	"flag"
 	"fmt"
 	"os"
 
 	"github.com/alfonzso/dying-disk-manager/pkg/config"
+	"github.com/alfonzso/dying-disk-manager/pkg/flags"
 	log "github.com/sirupsen/logrus"
 )
 
-func Manager(filename string, flag *flag.FlagSet) *config.DDMConfig {
+func Manager() *config.DDMConfig {
+	filename, flag := flags.Parser()
 
 	f, err := os.Open("config.yaml")
 	if err == nil {

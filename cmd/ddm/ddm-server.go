@@ -4,14 +4,18 @@ import (
 	"os"
 
 	"github.com/alfonzso/dying-disk-manager/ddm"
-	"github.com/alfonzso/dying-disk-manager/pkg/flags"
+	"github.com/alfonzso/dying-disk-manager/observer"
+	"github.com/alfonzso/dying-disk-manager/pkg/communication"
 	"github.com/alfonzso/dying-disk-manager/pkg/input"
 )
 
 func main() {
 
-	filename, flag := flags.Parser()
-	cfg := input.Manager(filename, flag)
+	config := input.Manager()
+	observer := observer.New()
+	ddm := ddm.New(observer, config)
 
-	os.Exit(ddm.Run(cfg))
+	communication.Socket(ddm)
+
+	os.Exit(0)
 }

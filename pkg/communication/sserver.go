@@ -1,4 +1,4 @@
-package ddm
+package communication
 
 import (
 	"bufio"
@@ -7,12 +7,11 @@ import (
 	"net"
 	"strings"
 
-	// "github.com/labstack/echo"
-	// socketio "github.com/googollee/go-socket.io"
+	"github.com/alfonzso/dying-disk-manager/ddm"
 	"github.com/rodaine/table"
 )
 
-func (d *DDMObserver) Socket() {
+func Socket(ddmd *ddm.DDMData) {
 	listener, err := net.Listen("tcp", "0.0.0.0:9999")
 	if err != nil {
 		log.Fatalln(err)
@@ -27,11 +26,19 @@ func (d *DDMObserver) Socket() {
 		}
 
 		// If you want, you can increment a counter here and inject to handleClientRequest below as client identifier
-		go handleClientRequest(con, d)
+		go handleClientRequest(con, ddmd)
 	}
 }
 
-func handleClientRequest(con net.Conn, d *DDMObserver) {
+func printDiskStat(ddmd *ddm.DDMData) {
+	tbl := table.New("UUID", "Name", "Active")
+	for _, disk := range ddmd.DiskStat {
+		tbl.AddRow(disk.UUID, disk.Name, disk.Active)
+	}
+	tbl.Print()
+}
+
+func handleClientRequest(con net.Conn, ddmd *ddm.DDMData) {
 	defer con.Close()
 
 	clientReader := bufio.NewReader(con)
@@ -48,11 +55,7 @@ func handleClientRequest(con net.Conn, d *DDMObserver) {
 				return
 			} else {
 				log.Println(clientRequest)
-				tbl := table.New("UUID", "Name", "Active")
-				for _, disk := range d.DiskStat {
-					tbl.AddRow(disk.UUID, disk.Name, disk.Active)
-				}
-				tbl.Print()
+				printDiskStat(ddmd)
 			}
 		case io.EOF:
 			log.Println("client closed the connection by terminating the process")
