@@ -3,10 +3,10 @@ package linux
 import (
 	"fmt"
 	"os/exec"
-	"regexp"
 	"slices"
 	"strings"
 
+	"github.com/alfonzso/dying-disk-manager/pkg/common"
 	"github.com/alfonzso/dying-disk-manager/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -59,30 +59,41 @@ func MkDirForMount(diskPath string) Linux {
 	return PathCreated
 }
 
-func CheckMountStatus(uuid, path string) Linux {
+func Lsblk() ([]string, Linux) {
 	lsblkCmd := "sudo lsblk -o UUID,MOUNTPOINT"
 	out, err := exec.Command("/bin/sh", "-c", lsblkCmd).CombinedOutput()
 	if err != nil {
 		log.Errorf(fmt.Sprint(err) + ": " + string(out))
-		return CommandError
+		return []string{}, CommandError
 	}
-	lsblkOut := strings.Split(string(out[:]), "\n")
+	return strings.Split(string(out[:]), "\n"), -1
+}
 
-	idx := slices.IndexFunc(lsblkOut, func(element string) bool {
-		return strings.Contains(element, uuid)
+func GrepInList(source []string, pattern string) string {
+	idx := slices.IndexFunc(source, func(row string) bool {
+		return strings.Contains(row, pattern)
 	})
 	if idx == -1 {
+		return ""
+	}
+	return source[idx]
+}
+
+func CheckMountStatus(uuid, path string) Linux {
+	lsblkOut, err := Lsblk()
+	if err >= 0 {
+		return err
+	}
+
+	lsblkFiltered := GrepInList(lsblkOut, uuid)
+	if lsblkFiltered == "" {
 		return NotMounted
 	}
 
-	uuidOut, pathOut := func() (string, string) {
-		space := regexp.MustCompile(`\s+`)
-		lsblkWoSpace := space.ReplaceAllString(lsblkOut[idx], " ")
-		x := strings.Split(lsblkWoSpace, " ")
-		return x[0], x[1]
-	}()
+	expectedUuidPath := []string{uuid, path}
+	resultUuidPath := common.Split(lsblkFiltered, `\s+`)
 
-	if uuidOut == uuid && pathOut == path {
+	if common.IsEquals[string](expectedUuidPath, resultUuidPath) {
 		return Mounted
 	}
 
@@ -93,6 +104,7 @@ func MountCommand(disk config.Disk) Linux {
 	swch := CheckMountStatus(disk.UUID, disk.Mount.Path)
 	switch swch {
 	case Mounted, CommandError, MountedButWrongPlace:
+		log.Debugf("Skipping mount because: %s", swch)
 		return swch
 	}
 	if MkDirForMount(disk.Mount.Path) == CommandError {

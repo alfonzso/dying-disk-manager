@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"time"
 
 	"github.com/alfonzso/dying-disk-manager/ddm"
 	// "github.com/alfonzso/dying-disk-manager/pkg/communication"
@@ -21,10 +23,16 @@ func main() {
 
 	ddm.Mount()
 
-	go ddm.ThreadTest()
+	go ddm.Threading()
 	// communication.Socket(ddm)
 	for {
 		// sleeping
+		for _, job := range ddm.Scheduler.Jobs() {
+			nexTrun, _ := job.NextRun()
+			fmt.Println(job.Name(), nexTrun, job.Tags())
+		}
+		// jobs := ddm.Scheduler.Jobs()
+		time.Sleep(5 * time.Second)
 	}
 
 	os.Exit(0)

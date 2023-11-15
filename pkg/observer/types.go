@@ -17,6 +17,7 @@ type DiskStat struct {
 	Active              bool
 	InactiveReason      []string
 	TestThreadIsRunning bool
+	MountThreadIsRunning bool
 }
 
 func (d DiskStat) String() string {
