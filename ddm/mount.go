@@ -39,7 +39,7 @@ func (ddmData *DDMData) BeforeMount() {
 			currentDiskStat.Active = false
 			currentDiskStat.InactiveReason = append(currentDiskStat.InactiveReason, "Disk UUID not found")
 		}
-		ddmData.DiskStat = append(ddmData.DiskStat, *currentDiskStat)
+		// ddmData.DiskStat = append(ddmData.DiskStat, *currentDiskStat)
 	}
 }
 
@@ -56,7 +56,8 @@ func linuxMount(disk config.Disk, diskStat *observer.DiskStat) {
 		diskStat.Active = false
 		log.Debugf("Inactive reason: %s", diskStat.InactiveReason)
 	}
-	log.Debugf("%+v",diskStat)
+	// log.Debugf("%+v",diskStat)
+	log.Debug(diskStat)
 }
 
 func (ddmData *DDMData) Mount() {

@@ -11,8 +11,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//go:generate stringer -type=Linux
+type Linux int
+
 const (
-	Mounted int = iota
+	Mounted Linux = iota
 	MountedButWrongPlace
 	NotMounted
 	CommandError
@@ -33,7 +36,7 @@ func CheckDiskAvailability(uuid string) bool {
 	return slices.Contains(disks, uuid)
 }
 
-func CheckMountPathExistence(path string) int {
+func CheckMountPathExistence(path string) Linux {
 	lsPath := fmt.Sprintf(" ls %s", path)
 	_, err := exec.Command("/bin/sh", "-c", lsPath).CombinedOutput()
 	if err == nil {
@@ -43,7 +46,7 @@ func CheckMountPathExistence(path string) int {
 	}
 }
 
-func MkDirForMount(diskPath string) int {
+func MkDirForMount(diskPath string) Linux {
 	if CheckMountPathExistence(diskPath) == PathExists {
 		return PathExists
 	}
@@ -56,7 +59,7 @@ func MkDirForMount(diskPath string) int {
 	return PathCreated
 }
 
-func CheckMountStatus(uuid, path string) int {
+func CheckMountStatus(uuid, path string) Linux {
 	lsblkCmd := "sudo lsblk -o UUID,MOUNTPOINT"
 	out, err := exec.Command("/bin/sh", "-c", lsblkCmd).CombinedOutput()
 	if err != nil {
@@ -86,15 +89,12 @@ func CheckMountStatus(uuid, path string) int {
 	return MountedButWrongPlace
 }
 
-func MountCommand(disk config.Disk) int {
+func MountCommand(disk config.Disk) Linux {
 	swch := CheckMountStatus(disk.UUID, disk.Mount.Path)
 	switch swch {
 	case Mounted, CommandError, MountedButWrongPlace:
 		return swch
 	}
-	// if checkAlreadyMounted(disk.UUID, disk.Mount.Path) {
-	// 	return true
-	// }
 	if MkDirForMount(disk.Mount.Path) == CommandError {
 		return CommandError
 	}

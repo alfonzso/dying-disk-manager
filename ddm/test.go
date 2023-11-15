@@ -54,7 +54,7 @@ func (ddmData *DDMData) setupCron(disk config.Disk, diskStat *observer.DiskStat,
 	}
 
 	diskStat.TestThreadIsRunning = true
-	log.Debugf("[%s] Cron staring with expr... %s", time.Now().Format("2006-01-02 15:04:05"), cron)
+	log.Debugf("[%s] Cron staring with expr... %s", disk.Name, cron)
 	ddmData.Scheduler.Start()
 	return 0, nil
 }
@@ -62,7 +62,7 @@ func (ddmData *DDMData) setupCron(disk config.Disk, diskStat *observer.DiskStat,
 func Test(disk config.Disk, diskStat *observer.DiskStat) (int, error) {
 	// log.Debug("Test ...", time.Now().Format("2006-01-02 15:04:05"))
 	if diskStat.Active {
-		log.Debug("Testing disk", diskStat.Name)
+		log.Debugf("[%s] Testing disk -> %s", disk.Name, diskStat.Name)
 	}
 	return 0, nil
 }
