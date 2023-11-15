@@ -3,10 +3,10 @@ common:
     enabled: true
     periodicCheck:
       enabled: true
-      cron: "* * * *"
+      cron: "* * * * *"
   test:
     enabled: true
-    cron: "* * * *"
+    cron: "* * * * *"
   repair:
     enabled: true
     command: "|"
@@ -18,12 +18,12 @@ disks:
     mount:
       enabled: true
       path: /mnt/disks001 # if mount enabled then its a required config
-      periodicCheck:
+      periodicCheck: # check is mounted if not remount
         enabled: true
-        cron: "* * * *"
+        cron: "* * * * *"
     test:
       enabled: true
-      cron: "* * * *"
+      cron: "* * * * *"
     repair:
       enabled: true
       # from uuid get device "name" as 'sd[xyz]'

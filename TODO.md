@@ -41,3 +41,12 @@ THREAD
   - commandAfter
   - enable periodCheck Thread
   - enable test Thread
+
+
+
+task -> loop disks
+  disk
+    -> is enabled
+    -> is disk active
+    task -> test
+    
