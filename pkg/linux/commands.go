@@ -21,9 +21,10 @@ const (
 	MountedButWrongPlace Linux = 4
 	NotMounted           Linux = 8
 	CommandError         Linux = 16
-	PathCreated          Linux = 32
-	PathNotExists        Linux = 64
-	PathExists           Linux = 128
+	CommandSuccess       Linux = 32
+	PathCreated          Linux = 64
+	PathNotExists        Linux = 128
+	PathExists           Linux = 256
 )
 
 var DetailedLinuxType = map[Linux]string{
@@ -110,6 +111,16 @@ func Lsblk() ([]string, Linux) {
 	return strings.Split(string(out[:]), "\n"), -1
 }
 
+func WriteIntoDisk(path string) Linux {
+	dateToFile := fmt.Sprintf(`date > %s/.tstfile`, path)
+	out, err := exec.Command("sudo /bin/sh", "-c", dateToFile).CombinedOutput()
+	if err != nil {
+		log.Errorf(fmt.Sprint(err) + ": " + string(out))
+		return CommandError
+	}
+	return CommandSuccess
+}
+
 func GrepInList(source []string, pattern string) string {
 	idx := slices.IndexFunc(source, func(row string) bool {
 		return strings.Contains(row, pattern)
@@ -122,6 +133,10 @@ func GrepInList(source []string, pattern string) string {
 
 func IsDiskMountHasError(uuid, path string) bool {
 	return IsMountOrCommandError(CheckMountStatus(uuid, path))
+}
+
+func IsWriteOnDiskHasError(path string) bool {
+	return WriteIntoDisk(path) == CommandError
 }
 
 func CheckMountStatus(uuid, path string) Linux {

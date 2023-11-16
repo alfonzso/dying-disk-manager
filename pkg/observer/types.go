@@ -12,12 +12,13 @@ type DDMObserver struct {
 const ()
 
 type DiskStat struct {
-	Name                string
-	UUID                string
-	Active              bool
-	InactiveReason      []string
-	TestThreadIsRunning bool
-	MountThreadIsRunning bool
+	Name                  string
+	UUID                  string
+	Active                bool
+	InactiveReason        []string
+	RepairThreadIsRunning bool
+	TestThreadIsRunning   bool
+	MountThreadIsRunning  bool
 }
 
 func (d DiskStat) String() string {

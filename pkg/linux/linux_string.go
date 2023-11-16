@@ -14,9 +14,10 @@ func _() {
 	_ = x[MountedButWrongPlace-4]
 	_ = x[NotMounted-8]
 	_ = x[CommandError-16]
-	_ = x[PathCreated-32]
-	_ = x[PathNotExists-64]
-	_ = x[PathExists-128]
+	_ = x[CommandSuccess-32]
+	_ = x[PathCreated-64]
+	_ = x[PathNotExists-128]
+	_ = x[PathExists-256]
 }
 
 const (
@@ -24,9 +25,10 @@ const (
 	_Linux_name_1 = "MountedButWrongPlace"
 	_Linux_name_2 = "NotMounted"
 	_Linux_name_3 = "CommandError"
-	_Linux_name_4 = "PathCreated"
-	_Linux_name_5 = "PathNotExists"
-	_Linux_name_6 = "PathExists"
+	_Linux_name_4 = "CommandSuccess"
+	_Linux_name_5 = "PathCreated"
+	_Linux_name_6 = "PathNotExists"
+	_Linux_name_7 = "PathExists"
 )
 
 var (
@@ -49,6 +51,8 @@ func (i Linux) String() string {
 		return _Linux_name_5
 	case i == 128:
 		return _Linux_name_6
+	case i == 256:
+		return _Linux_name_7
 	default:
 		return "Linux(" + strconv.FormatInt(int64(i), 10) + ")"
 	}

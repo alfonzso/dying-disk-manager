@@ -2,6 +2,7 @@ package ddm
 
 import (
 	"github.com/alfonzso/dying-disk-manager/pkg/config"
+	"github.com/alfonzso/dying-disk-manager/pkg/linux"
 	"github.com/alfonzso/dying-disk-manager/pkg/observer"
 
 	log "github.com/sirupsen/logrus"
@@ -14,7 +15,10 @@ func (ddmData *DDMData) isTestCanBeRun(disk config.Disk, diskStat *observer.Disk
 func (ddmData *DDMData) setupTestThread() {
 	for _, disk := range ddmData.Disks {
 		diskStat := ddmData.GetDiskStat(disk)
-		if ddmData.isTestCanBeRun(disk, diskStat) {
+		if diskStat.RepairThreadIsRunning {
+			// ddmData.Scheduler.RemoveByTags(diskStat.UUID)
+			log.Debugf("[%s] RepairThreadIsRunning", disk.Name)
+		} else if ddmData.isTestCanBeRun(disk, diskStat) {
 			go ddmData.SetupCron(
 				"TEST",
 				Test,
@@ -31,6 +35,13 @@ func (ddmData *DDMData) setupTestThread() {
 func Test(disk config.Disk, diskStat *observer.DiskStat) (int, error) {
 	if diskStat.Active {
 		log.Debugf("[%s] Testing disk ", disk.Name)
+		if linux.IsWriteOnDiskHasError(disk.Mount.Path) {
+			diskStat.RepairThreadIsRunning = true
+		}
 	}
 	return 0, nil
+}
+
+func TriggerRepair() {
+
 }

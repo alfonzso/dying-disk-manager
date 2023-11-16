@@ -41,7 +41,7 @@ func periodCheck(disk config.Disk, diskStat *observer.DiskStat) (int, error) {
 		if linux.IsDiskMountHasError(diskStat.UUID, disk.Mount.Path) {
 			log.Debugf("[%s] IsDiskMountHasError", diskStat.Name)
 			if ForceRemount(disk, diskStat) == linux.CommandError {
-				diskStat.Active = false
+				diskStat.Active = false //TODO may trigger a repair ...
 				return 0, nil
 			}
 			log.Debugf("[%s] ReMount success", diskStat.Name)
