@@ -22,7 +22,7 @@ func (ddmData *DDMData) setupMountThread() {
 		} else if ddmData.isMountCanBeRun(disk, diskStat) {
 			go ddmData.SetupCron(
 				"MOUNT",
-				periodCheck,
+				ddmData.periodCheck,
 				disk,
 				diskStat,
 				GetCronExpr(disk.Mount.PeriodicCheck.Cron, ddmData.Common.Mount.PeriodicCheck.Cron),
@@ -32,25 +32,25 @@ func (ddmData *DDMData) setupMountThread() {
 	}
 }
 
-func ForceRemount(disk config.Disk, diskStat *observer.DiskStat) linux.Linux {
-	log.Debugf("Try to umount => %s", linux.UMount(disk))
-	if linux.Mount(disk).IsFailed() {
+func (ddmData *DDMData) ForceRemount(disk config.Disk, diskStat *observer.DiskStat) linux.LinuxCommands {
+	log.Debugf("Try to umount => %s", ddmData.Exec.UMount(disk))
+	if ddmData.Exec.Mount(disk).IsFailed() {
 		log.Errorf("[%s] Mount failed", diskStat.Name)
 		return linux.CommandError
 	}
 	return linux.Mounted
 }
 
-func periodCheck(disk config.Disk, diskStat *observer.DiskStat) (int, error) {
+func (ddmData *DDMData) periodCheck(disk config.Disk, diskStat *observer.DiskStat) (int, error) {
 	diskStat.ActionStatus.Mount = observer.Running
 	if !diskStat.Active {
 		log.Warningf("[%s] Disk not active in PeriodCheck thread", disk.Name)
 		return 0, nil
 	}
-	if !linux.CheckMountStatus(diskStat.UUID, disk.Mount.Path).IsMountOrCommandError() {
+	if !ddmData.Exec.CheckMountStatus(diskStat.UUID, disk.Mount.Path).IsMountOrCommandError() {
 		return 0, nil
 	}
-	if ForceRemount(disk, diskStat) == linux.CommandError {
+	if ddmData.ForceRemount(disk, diskStat).IsFailed() {
 		log.Errorf("[%s] ReMount failed", diskStat.Name)
 		diskStat.Active = false //TODO may trigger a repair ...
 		return 0, nil
@@ -64,15 +64,16 @@ func (ddmData *DDMData) BeforeMount() {
 	for _, disk := range ddmData.Disks {
 		currentDiskStat := ddmData.GetDiskStat(disk)
 		currentDiskStat.Active = true
-		if !linux.CheckDiskAvailability(disk.UUID) {
+		if !ddmData.Exec.CheckDiskAvailability(disk.UUID) {
 			currentDiskStat.Active = false
 			currentDiskStat.InactiveReason = append(currentDiskStat.InactiveReason, "Disk UUID not found")
 		}
 	}
 }
 
-func linuxMount(disk config.Disk, diskStat *observer.DiskStat) {
-	mountResult := linux.MountCommand(disk)
+func (ddmData *DDMData) linuxMount(disk config.Disk, diskStat *observer.DiskStat) {
+	mountResult := ddmData.Exec.MountCommand(disk)
+	// mountResult := linux.MountCommand(disk)
 	if mountResult.IsMountOrCommandError() {
 		diskStat.InactiveReason = append(diskStat.InactiveReason, linux.DetailedLinuxType[mountResult])
 	}
@@ -100,7 +101,7 @@ func (ddmData *DDMData) Mount() {
 
 		if disk.Mount.Enabled || ddmData.Common.Mount.Enabled {
 			log.Debugf("Mounting... %s", disk.Name)
-			linuxMount(disk, diskStat)
+			ddmData.linuxMount(disk, diskStat)
 		} else {
 			log.Debugf("Mount disabled: %s", disk.Name)
 		}

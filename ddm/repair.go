@@ -22,7 +22,7 @@ func (ddmData *DDMData) setupRepairThread() {
 	}
 }
 
-func (ddmData *DDMData) PreRepair(disk config.Disk, diskStat *observer.DiskStat) linux.Linux {
+func (ddmData *DDMData) PreRepair(disk config.Disk, diskStat *observer.DiskStat) linux.LinuxCommands {
 	log.Debugf("[%s] PreRepair ...", diskStat.Name)
 	for {
 		if diskStat.IsMountAndTestActionInIddleStatus() {
@@ -32,7 +32,7 @@ func (ddmData *DDMData) PreRepair(disk config.Disk, diskStat *observer.DiskStat)
 		time.Sleep(10 * time.Second)
 	}
 
-	if linux.UMount(disk).IsFailed() {
+	if ddmData.Exec.UMount(disk).IsFailed() {
 		log.Debugf("[%s] PreRepair failed to umount disk ... ", diskStat.Name)
 		return linux.CommandError
 	}

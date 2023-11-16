@@ -2,7 +2,6 @@ package ddm
 
 import (
 	"github.com/alfonzso/dying-disk-manager/pkg/config"
-	"github.com/alfonzso/dying-disk-manager/pkg/linux"
 	"github.com/alfonzso/dying-disk-manager/pkg/observer"
 
 	log "github.com/sirupsen/logrus"
@@ -23,7 +22,7 @@ func (ddmData *DDMData) setupTestThread() {
 		} else if ddmData.isTestCanBeRun(disk, diskStat) {
 			go ddmData.SetupCron(
 				"TEST",
-				Test,
+				ddmData.Test,
 				disk,
 				diskStat,
 				GetCronExpr(disk.Test.Cron, ddmData.Common.Test.Cron),
@@ -33,14 +32,14 @@ func (ddmData *DDMData) setupTestThread() {
 	}
 }
 
-func Test(disk config.Disk, diskStat *observer.DiskStat) (int, error) {
+func (ddmData *DDMData) Test(disk config.Disk, diskStat *observer.DiskStat) (int, error) {
 	diskStat.ActionStatus.Test = observer.Running
 	if !diskStat.Active {
 		log.Warningf("[%s] Disk deactivated in Test thread", disk.Name)
 		return 0, nil
 	}
 
-	if linux.WriteIntoDisk(disk.Mount.Path).IsFailed() {
+	if ddmData.Exec.WriteIntoDisk(disk.Mount.Path).IsFailed() {
 		log.Debugf("[%s] Write to disk failed, triggering repair", disk.Name)
 		diskStat.Active = false
 		diskStat.RepairThreadIsRunning = true

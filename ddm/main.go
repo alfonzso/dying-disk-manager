@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/alfonzso/dying-disk-manager/pkg/config"
+	"github.com/alfonzso/dying-disk-manager/pkg/linux"
 	"github.com/alfonzso/dying-disk-manager/pkg/observer"
 	"github.com/go-co-op/gocron/v2"
 	log "github.com/sirupsen/logrus"
@@ -11,6 +12,7 @@ import (
 
 type DDMData struct {
 	Scheduler gocron.Scheduler
+	*linux.Linux
 	*observer.DDMObserver
 	*config.DDMConfig
 }
@@ -70,8 +72,9 @@ func (ddmData *DDMData) SetupCron(
 
 func New(o *observer.DDMObserver, c *config.DDMConfig) *DDMData {
 	s, err := gocron.NewScheduler()
+	linux := &linux.Linux{Exec: linux.NewExecCommand()}
 	if err != nil {
 		log.Error("Cron scheduler failed to setup")
 	}
-	return &DDMData{s, o, c}
+	return &DDMData{s, linux, o, c}
 }

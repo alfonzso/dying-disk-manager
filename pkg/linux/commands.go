@@ -11,79 +11,107 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//go:generate stringer -type=Linux
-type Linux int
+type Linux struct {
+	Exec *ExecCommandsType
+}
+
+//go:generate stringer -type=LinuxCommands
+type LinuxCommands int
 
 const (
-	None                 Linux = 0
-	Mounted              Linux = 1 << iota
-	UMounted                   // Linux = 2
-	MountedButWrongPlace       // Linux = 4
-	NotMounted                 // Linux = 8
-	CommandError               // Linux = 16
-	CommandSuccess             // Linux = 32
-	PathCreated                // Linux = 64
-	PathNotExists              // Linux = 128
-	PathExists                 // Linux = 256
+	None    LinuxCommands = 0
+	Mounted LinuxCommands = 1 << iota
+	UMounted
+	MountedButWrongPlace
+	NotMounted
+	UUIDNotExists
+	CommandError
+	CommandSuccess
+	PathCreated
+	PathNotExists
+	PathExists
 )
 
-var DetailedLinuxType = map[Linux]string{
+var DetailedLinuxType = map[LinuxCommands]string{
 	CommandError:         "Command error happened",
 	NotMounted:           "Disk not or cannot mounted",
 	MountedButWrongPlace: "Disk already mounted somewhere else",
 }
 
-var MountOrCommandError = MountedButWrongPlace | NotMounted | CommandError
-var MountWillBeSkip = Mounted | CommandError | MountedButWrongPlace
+var MountOrCommandError = MountedButWrongPlace | NotMounted | UUIDNotExists | CommandError
+var MountWillBeSkip = Mounted | MountedButWrongPlace | UUIDNotExists | CommandError
 
-func (l Linux) IsSucceed() bool {
+func (l LinuxCommands) IsSucceed() bool {
 	return l == CommandSuccess
 }
 
-func (l Linux) IsFailed() bool {
+func (l LinuxCommands) IsFailed() bool {
 	return l == CommandError
 }
 
-func (l Linux) IsPathExists() bool {
+func (l LinuxCommands) IsPathExists() bool {
 	return l == PathExists
 }
 
-func (err Linux) IsMountOrCommandError() bool {
+func (err LinuxCommands) IsMountOrCommandError() bool {
 	return (err & MountOrCommandError) == err
 }
 
-func (err Linux) IsMountWillBeSkip() bool {
+func (err LinuxCommands) IsMountWillBeSkip() bool {
 	return (err & MountWillBeSkip) == err
 }
 
-func CheckDiskAvailability(uuid string) bool {
-	out, err := exec.Command("/bin/sh", "-c", "ls /dev/disk/by-uuid/").CombinedOutput()
-	// out, err := exec.Command("sudo echo faf").Output()
-	// out, err := exec.Command("/bin/sh", "-c", "sudo echo faf").Output()
+type ExecCommandsType struct {
+	// GrepInList              func([]string, string) string
+	// LsblkCMD                func() ([]string, LinuxCommands)
+	checkDiskAvailability   func(string) ([]byte, error)
+	checkMountPathExistence func(string) ([]byte, error)
+	mkDir                   func(string) ([]byte, error)
+	mount                   func(string) ([]byte, error)
+	umount                  func(string) ([]byte, error)
+	lsblk                   func(string) ([]byte, error)
+	writeIntoDisk           func(string) ([]byte, error)
+}
+
+func NewExecCommand() *ExecCommandsType {
+	basicCmd := func(command string) ([]byte, error) { return exec.Command("/bin/sh", "-c", command).CombinedOutput() }
+	execC := &ExecCommandsType{
+		checkDiskAvailability:   basicCmd,
+		checkMountPathExistence: basicCmd,
+		mkDir:                   basicCmd,
+		mount:                   basicCmd,
+		umount:                  basicCmd,
+		lsblk:                   basicCmd,
+		writeIntoDisk:           basicCmd,
+	}
+	// execC.LsblkCMD = execC.Lsblk
+	// execC.GrepInList = common.GrepInList
+	return execC
+}
+
+func (e ExecCommandsType) CheckDiskAvailability(uuid string) bool {
+	out, err := e.checkDiskAvailability("ls /dev/disk/by-uuid/")
 	if err != nil {
 		log.Errorf(fmt.Sprint(err) + ": " + string(out))
 		return false
 	}
-	disks := strings.Split(string(out[:]), "\n")
+	disks := strings.Split(string(out[:]), " ")
 	return slices.Contains(disks, uuid)
 }
 
-func CheckMountPathExistence(path string) Linux {
-	lsPath := fmt.Sprintf(" ls %s", path)
-	_, err := exec.Command("/bin/sh", "-c", lsPath).CombinedOutput()
-	if err == nil {
-		return PathExists
-	} else {
+func (e ExecCommandsType) CheckMountPathExistence(path string) LinuxCommands {
+	_, err := e.checkMountPathExistence(fmt.Sprintf("ls %s", path))
+	if err != nil {
 		return PathNotExists
 	}
+	return PathExists
 }
 
-func MkDir(diskPath string) Linux {
-	if CheckMountPathExistence(diskPath).IsPathExists() {
+func (e ExecCommandsType) MkDir(diskPath string) LinuxCommands {
+	if e.CheckMountPathExistence(diskPath).IsPathExists() {
 		return PathExists
 	}
-	mkDir := fmt.Sprintf("sudo mkdir %s", diskPath)
-	out, err := exec.Command("/bin/sh", "-c", mkDir).CombinedOutput()
+	out, err := e.mkDir(fmt.Sprintf("sudo mkdir %s", diskPath))
 	if err != nil {
 		log.Errorf(fmt.Sprint(err) + ": " + string(out))
 		return CommandError
@@ -91,9 +119,8 @@ func MkDir(diskPath string) Linux {
 	return PathCreated
 }
 
-func Mount(disk config.Disk) Linux {
-	sudoMount := fmt.Sprintf("sudo mount UUID=%s %s", disk.UUID, disk.Mount.Path)
-	out, err := exec.Command("/bin/sh", "-c", sudoMount).CombinedOutput()
+func (e ExecCommandsType) Mount(disk config.Disk) LinuxCommands {
+	out, err := e.mount(fmt.Sprintf("sudo mount UUID=%s %s", disk.UUID, disk.Mount.Path))
 	if err != nil {
 		log.Errorf(fmt.Sprint(err) + ": " + string(out))
 		return CommandError
@@ -101,9 +128,8 @@ func Mount(disk config.Disk) Linux {
 	return Mounted
 }
 
-func UMount(disk config.Disk) Linux {
-	sudoUmount := fmt.Sprintf("sudo umount -l %s", disk.Mount.Path)
-	out, err := exec.Command("/bin/sh", "-c", sudoUmount).CombinedOutput()
+func (e ExecCommandsType) UMount(disk config.Disk) LinuxCommands {
+	out, err := e.umount(fmt.Sprintf("sudo umount -l %s", disk.Mount.Path))
 	if err != nil {
 		log.Errorf(fmt.Sprint(err) + ": " + string(out))
 		return CommandError
@@ -111,19 +137,17 @@ func UMount(disk config.Disk) Linux {
 	return UMounted
 }
 
-func Lsblk() ([]string, Linux) {
-	lsblkCmd := "sudo lsblk -o UUID,MOUNTPOINT"
-	out, err := exec.Command("/bin/sh", "-c", lsblkCmd).CombinedOutput()
+func (e ExecCommandsType) Lsblk() ([]string, LinuxCommands) {
+	out, err := e.lsblk("sudo lsblk -o UUID,MOUNTPOINT")
 	if err != nil {
 		log.Errorf(fmt.Sprint(err) + ": " + string(out))
 		return []string{}, CommandError
 	}
-	return strings.Split(string(out[:]), "\n"), -1
+	return strings.Split(string(out[:]), "\n"), CommandSuccess
 }
 
-func WriteIntoDisk(path string) Linux {
-	dateToFile := fmt.Sprintf(`date > %s/.tstfile`, path)
-	out, err := exec.Command("sudo /bin/sh", "-c", dateToFile).CombinedOutput()
+func (e ExecCommandsType) WriteIntoDisk(path string) LinuxCommands {
+	out, err := e.writeIntoDisk(fmt.Sprintf(`sudo date > %s/.tstfile`, path))
 	if err != nil {
 		log.Errorf(fmt.Sprint(err) + ": " + string(out))
 		return CommandError
@@ -131,30 +155,20 @@ func WriteIntoDisk(path string) Linux {
 	return CommandSuccess
 }
 
-func GrepInList(source []string, pattern string) string {
-	idx := slices.IndexFunc(source, func(row string) bool {
-		return strings.Contains(row, pattern)
-	})
-	if idx == -1 {
-		return ""
-	}
-	return source[idx]
-}
-
-func CheckMountStatus(uuid, path string) Linux {
-	lsblkOut, err := Lsblk()
-	if err >= 0 {
+func (e ExecCommandsType) CheckMountStatus(uuid, path string) LinuxCommands {
+	lsblkOut, err := e.Lsblk()
+	if err.IsFailed() {
 		return err
 	}
 
-	lsblkFiltered := GrepInList(lsblkOut, uuid)
+	lsblkFiltered := common.GrepInList(lsblkOut, uuid)
 	if lsblkFiltered == "" {
-		return NotMounted // TODO create UUIDNotExists error
+		return UUIDNotExists
 	}
 
 	expectedUuidPath := []string{uuid, path}
-	expectedNotMountedUuidPath := []string{uuid, ""}
-	resultUuidPath := common.Split(lsblkFiltered, `\s+`)
+	expectedNotMountedUuidPath := []string{uuid}
+	resultUuidPath := common.DeleteEmpty(common.Split(lsblkFiltered, `\s+`))
 
 	if common.IsEquals[string](expectedNotMountedUuidPath, resultUuidPath) {
 		return NotMounted
@@ -167,13 +181,13 @@ func CheckMountStatus(uuid, path string) Linux {
 	return MountedButWrongPlace
 }
 
-func MountCommand(disk config.Disk) Linux {
-	if mountStatus := CheckMountStatus(disk.UUID, disk.Mount.Path); mountStatus.IsMountWillBeSkip() {
+func (e ExecCommandsType) MountCommand(disk config.Disk) LinuxCommands {
+	if mountStatus := e.CheckMountStatus(disk.UUID, disk.Mount.Path); mountStatus.IsMountWillBeSkip() {
 		log.Debugf("[%s] Mount will be skiped", mountStatus)
 		return mountStatus
 	}
-	if MkDir(disk.Mount.Path).IsFailed() {
+	if e.MkDir(disk.Mount.Path).IsFailed() {
 		return CommandError
 	}
-	return Mount(disk)
+	return e.Mount(disk)
 }
