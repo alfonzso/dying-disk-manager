@@ -9,7 +9,20 @@ type DDMObserver struct {
 	DiskStat []DiskStat
 }
 
-const ()
+type ActionStatusType int
+
+const (
+	Running ActionStatusType = iota
+	Iddle
+)
+
+func (as ActionStatusType) IsIddle() bool {
+	return as == Iddle
+}
+
+func (as ActionStatusType) IsRunning() bool {
+	return as == Running
+}
 
 type DiskStat struct {
 	Name                  string
@@ -19,6 +32,16 @@ type DiskStat struct {
 	RepairThreadIsRunning bool
 	TestThreadIsRunning   bool
 	MountThreadIsRunning  bool
+	ActionStatus          struct {
+		Repair ActionStatusType
+		Mount  ActionStatusType
+		Test   ActionStatusType
+	}
+}
+
+func (d DiskStat) IsMountAndTestActionInIddleStatus() bool {
+	return d.ActionStatus.Mount.IsIddle() &&
+		d.ActionStatus.Test.IsIddle()
 }
 
 func (d DiskStat) String() string {

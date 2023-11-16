@@ -16,15 +16,15 @@ type Linux int
 
 const (
 	None                 Linux = 0
-	Mounted              Linux = 1
-	UMounted             Linux = 2
-	MountedButWrongPlace Linux = 4
-	NotMounted           Linux = 8
-	CommandError         Linux = 16
-	CommandSuccess       Linux = 32
-	PathCreated          Linux = 64
-	PathNotExists        Linux = 128
-	PathExists           Linux = 256
+	Mounted              Linux = 1 << iota
+	UMounted                   // Linux = 2
+	MountedButWrongPlace       // Linux = 4
+	NotMounted                 // Linux = 8
+	CommandError               // Linux = 16
+	CommandSuccess             // Linux = 32
+	PathCreated                // Linux = 64
+	PathNotExists              // Linux = 128
+	PathExists                 // Linux = 256
 )
 
 var DetailedLinuxType = map[Linux]string{
@@ -36,13 +36,23 @@ var DetailedLinuxType = map[Linux]string{
 var MountOrCommandError = MountedButWrongPlace | NotMounted | CommandError
 var MountWillBeSkip = Mounted | CommandError | MountedButWrongPlace
 
-// var
+func (l Linux) IsSucceed() bool {
+	return l == CommandSuccess
+}
 
-func IsMountOrCommandError(err Linux) bool {
+func (l Linux) IsFailed() bool {
+	return l == CommandError
+}
+
+func (l Linux) IsPathExists() bool {
+	return l == PathExists
+}
+
+func (err Linux) IsMountOrCommandError() bool {
 	return (err & MountOrCommandError) == err
 }
 
-func IsMountWillBeSkip(err Linux) bool {
+func (err Linux) IsMountWillBeSkip() bool {
 	return (err & MountWillBeSkip) == err
 }
 
@@ -69,7 +79,7 @@ func CheckMountPathExistence(path string) Linux {
 }
 
 func MkDir(diskPath string) Linux {
-	if CheckMountPathExistence(diskPath) == PathExists {
+	if CheckMountPathExistence(diskPath).IsPathExists() {
 		return PathExists
 	}
 	mkDir := fmt.Sprintf("sudo mkdir %s", diskPath)
@@ -131,14 +141,6 @@ func GrepInList(source []string, pattern string) string {
 	return source[idx]
 }
 
-func IsDiskMountHasError(uuid, path string) bool {
-	return IsMountOrCommandError(CheckMountStatus(uuid, path))
-}
-
-func IsWriteOnDiskHasError(path string) bool {
-	return WriteIntoDisk(path) == CommandError
-}
-
 func CheckMountStatus(uuid, path string) Linux {
 	lsblkOut, err := Lsblk()
 	if err >= 0 {
@@ -166,11 +168,11 @@ func CheckMountStatus(uuid, path string) Linux {
 }
 
 func MountCommand(disk config.Disk) Linux {
-	if mountStatus := CheckMountStatus(disk.UUID, disk.Mount.Path); IsMountWillBeSkip(mountStatus) {
+	if mountStatus := CheckMountStatus(disk.UUID, disk.Mount.Path); mountStatus.IsMountWillBeSkip() {
 		log.Debugf("[%s] Mount will be skiped", mountStatus)
 		return mountStatus
 	}
-	if MkDir(disk.Mount.Path) == CommandError {
+	if MkDir(disk.Mount.Path).IsFailed() {
 		return CommandError
 	}
 	return Mount(disk)

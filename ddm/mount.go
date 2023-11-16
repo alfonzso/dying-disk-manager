@@ -14,7 +14,12 @@ func (ddmData *DDMData) isMountCanBeRun(disk config.Disk, diskStat *observer.Dis
 func (ddmData *DDMData) setupMountThread() {
 	for _, disk := range ddmData.Disks {
 		diskStat := ddmData.GetDiskStat(disk)
-		if ddmData.isMountCanBeRun(disk, diskStat) {
+		if diskStat.RepairThreadIsRunning {
+			if diskStat.ActionStatus.Mount.IsRunning() {
+				diskStat.ActionStatus.Mount = observer.Iddle
+			}
+			log.Debugf("[%s] MOUNT -> Repair is ON", disk.Name)
+		} else if ddmData.isMountCanBeRun(disk, diskStat) {
 			go ddmData.SetupCron(
 				"MOUNT",
 				periodCheck,
@@ -29,7 +34,7 @@ func (ddmData *DDMData) setupMountThread() {
 
 func ForceRemount(disk config.Disk, diskStat *observer.DiskStat) linux.Linux {
 	log.Debugf("Try to umount => %s", linux.UMount(disk))
-	if linux.Mount(disk) == linux.CommandError {
+	if linux.Mount(disk).IsFailed() {
 		log.Errorf("[%s] Mount failed", diskStat.Name)
 		return linux.CommandError
 	}
@@ -37,16 +42,21 @@ func ForceRemount(disk config.Disk, diskStat *observer.DiskStat) linux.Linux {
 }
 
 func periodCheck(disk config.Disk, diskStat *observer.DiskStat) (int, error) {
-	if diskStat.Active {
-		if linux.IsDiskMountHasError(diskStat.UUID, disk.Mount.Path) {
-			log.Debugf("[%s] IsDiskMountHasError", diskStat.Name)
-			if ForceRemount(disk, diskStat) == linux.CommandError {
-				diskStat.Active = false //TODO may trigger a repair ...
-				return 0, nil
-			}
-			log.Debugf("[%s] ReMount success", diskStat.Name)
-		}
+	diskStat.ActionStatus.Mount = observer.Running
+	if !diskStat.Active {
+		log.Warningf("[%s] Disk not active in PeriodCheck thread", disk.Name)
+		return 0, nil
 	}
+	if !linux.CheckMountStatus(diskStat.UUID, disk.Mount.Path).IsMountOrCommandError() {
+		return 0, nil
+	}
+	if ForceRemount(disk, diskStat) == linux.CommandError {
+		log.Errorf("[%s] ReMount failed", diskStat.Name)
+		diskStat.Active = false //TODO may trigger a repair ...
+		return 0, nil
+	}
+	log.Debugf("[%s] ReMount success", diskStat.Name)
+	diskStat.ActionStatus.Mount = observer.Iddle
 	return 0, nil
 }
 
@@ -63,7 +73,7 @@ func (ddmData *DDMData) BeforeMount() {
 
 func linuxMount(disk config.Disk, diskStat *observer.DiskStat) {
 	mountResult := linux.MountCommand(disk)
-	if err := linux.IsMountOrCommandError(mountResult); err {
+	if mountResult.IsMountOrCommandError() {
 		diskStat.InactiveReason = append(diskStat.InactiveReason, linux.DetailedLinuxType[mountResult])
 	}
 

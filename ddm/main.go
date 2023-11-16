@@ -33,6 +33,7 @@ func (ddmData *DDMData) Threading() {
 		// fuck ... i have to manage this per disks .......
 		ddmData.setupTestThread()
 		ddmData.setupMountThread()
+		ddmData.setupRepairThread()
 		time.Sleep(30 * time.Second)
 	}
 }

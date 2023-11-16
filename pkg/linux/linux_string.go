@@ -9,50 +9,52 @@ func _() {
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
 	_ = x[None-0]
-	_ = x[Mounted-1]
-	_ = x[UMounted-2]
-	_ = x[MountedButWrongPlace-4]
-	_ = x[NotMounted-8]
-	_ = x[CommandError-16]
-	_ = x[CommandSuccess-32]
-	_ = x[PathCreated-64]
-	_ = x[PathNotExists-128]
-	_ = x[PathExists-256]
+	_ = x[Mounted-2]
+	_ = x[UMounted-4]
+	_ = x[MountedButWrongPlace-8]
+	_ = x[NotMounted-16]
+	_ = x[CommandError-32]
+	_ = x[CommandSuccess-64]
+	_ = x[PathCreated-128]
+	_ = x[PathNotExists-256]
+	_ = x[PathExists-512]
 }
 
 const (
-	_Linux_name_0 = "NoneMountedUMounted"
-	_Linux_name_1 = "MountedButWrongPlace"
-	_Linux_name_2 = "NotMounted"
-	_Linux_name_3 = "CommandError"
-	_Linux_name_4 = "CommandSuccess"
-	_Linux_name_5 = "PathCreated"
-	_Linux_name_6 = "PathNotExists"
-	_Linux_name_7 = "PathExists"
-)
-
-var (
-	_Linux_index_0 = [...]uint8{0, 4, 11, 19}
+	_Linux_name_0 = "None"
+	_Linux_name_1 = "Mounted"
+	_Linux_name_2 = "UMounted"
+	_Linux_name_3 = "MountedButWrongPlace"
+	_Linux_name_4 = "NotMounted"
+	_Linux_name_5 = "CommandError"
+	_Linux_name_6 = "CommandSuccess"
+	_Linux_name_7 = "PathCreated"
+	_Linux_name_8 = "PathNotExists"
+	_Linux_name_9 = "PathExists"
 )
 
 func (i Linux) String() string {
 	switch {
-	case 0 <= i && i <= 2:
-		return _Linux_name_0[_Linux_index_0[i]:_Linux_index_0[i+1]]
-	case i == 4:
+	case i == 0:
+		return _Linux_name_0
+	case i == 2:
 		return _Linux_name_1
-	case i == 8:
+	case i == 4:
 		return _Linux_name_2
-	case i == 16:
+	case i == 8:
 		return _Linux_name_3
-	case i == 32:
+	case i == 16:
 		return _Linux_name_4
-	case i == 64:
+	case i == 32:
 		return _Linux_name_5
-	case i == 128:
+	case i == 64:
 		return _Linux_name_6
-	case i == 256:
+	case i == 128:
 		return _Linux_name_7
+	case i == 256:
+		return _Linux_name_8
+	case i == 512:
+		return _Linux_name_9
 	default:
 		return "Linux(" + strconv.FormatInt(int64(i), 10) + ")"
 	}

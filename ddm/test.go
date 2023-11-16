@@ -16,8 +16,10 @@ func (ddmData *DDMData) setupTestThread() {
 	for _, disk := range ddmData.Disks {
 		diskStat := ddmData.GetDiskStat(disk)
 		if diskStat.RepairThreadIsRunning {
-			// ddmData.Scheduler.RemoveByTags(diskStat.UUID)
-			log.Debugf("[%s] RepairThreadIsRunning", disk.Name)
+			if diskStat.ActionStatus.Test.IsRunning() {
+				diskStat.ActionStatus.Test = observer.Iddle
+			}
+			log.Debugf("[%s] TEST -> Repair is ON", disk.Name)
 		} else if ddmData.isTestCanBeRun(disk, diskStat) {
 			go ddmData.SetupCron(
 				"TEST",
@@ -29,19 +31,21 @@ func (ddmData *DDMData) setupTestThread() {
 			diskStat.TestThreadIsRunning = true
 		}
 	}
-	// time.Sleep(30 * time.Second)
 }
 
 func Test(disk config.Disk, diskStat *observer.DiskStat) (int, error) {
-	if diskStat.Active {
-		log.Debugf("[%s] Testing disk ", disk.Name)
-		if linux.IsWriteOnDiskHasError(disk.Mount.Path) {
-			diskStat.RepairThreadIsRunning = true
-		}
+	diskStat.ActionStatus.Test = observer.Running
+	if !diskStat.Active {
+		log.Warningf("[%s] Disk deactivated in Test thread", disk.Name)
+		return 0, nil
 	}
+
+	if linux.WriteIntoDisk(disk.Mount.Path).IsFailed() {
+		log.Debugf("[%s] Write to disk failed, triggering repair", disk.Name)
+		diskStat.Active = false
+		diskStat.RepairThreadIsRunning = true
+		return 0, nil
+	}
+	diskStat.ActionStatus.Test = observer.Iddle
 	return 0, nil
-}
-
-func TriggerRepair() {
-
 }

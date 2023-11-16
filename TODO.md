@@ -31,8 +31,10 @@ THREAD
   triggerRepair:
    repair if is enabledInConfig:
     - wait for periodCheck is done
+    - wait for test is done
     - disable periodCheck Thread
     - disable test Thread
+    - umount disk
     - trigger repair
 THREAD
 * repair
@@ -49,4 +51,3 @@ task -> loop disks
     -> is enabled
     -> is disk active
     task -> test
-    
