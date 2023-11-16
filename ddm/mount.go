@@ -12,7 +12,6 @@ func (ddmData *DDMData) isMountCanBeRun(disk config.Disk, diskStat *observer.Dis
 }
 
 func (ddmData *DDMData) setupMountThread() {
-	// for {
 	for _, disk := range ddmData.Disks {
 		diskStat := ddmData.GetDiskStat(disk)
 		if ddmData.isMountCanBeRun(disk, diskStat) {
@@ -26,13 +25,14 @@ func (ddmData *DDMData) setupMountThread() {
 			diskStat.MountThreadIsRunning = true
 		}
 	}
-	// time.Sleep(30 * time.Second)
-	// }
 }
 
 func periodCheck(disk config.Disk, diskStat *observer.DiskStat) (int, error) {
 	if diskStat.Active {
 		log.Debugf("[%s] Mounting test", diskStat.Name)
+		if linux.IsDiskMountHasError(diskStat.UUID, disk.Mount.Path) {
+
+		}
 	}
 	return 0, nil
 }
@@ -49,23 +49,18 @@ func (ddmData *DDMData) BeforeMount() {
 }
 
 func linuxMount(disk config.Disk, diskStat *observer.DiskStat) {
-
-	switch swch := linux.MountCommand(disk); swch {
-	case linux.CommandError:
-		diskStat.InactiveReason = append(diskStat.InactiveReason, "Command error happened")
-	case linux.NotMounted:
-		diskStat.InactiveReason = append(diskStat.InactiveReason, "Disk not or cannot mounted")
-	case linux.MountedButWrongPlace:
-		diskStat.InactiveReason = append(diskStat.InactiveReason, "Disk already mounted somewhere else")
-	default:
-		log.Debugf("Mount status: %s", swch)
-		log.Debug(diskStat)
+	mountResult := linux.MountCommand(disk)
+	if err := linux.IsMountOrCommandError(mountResult); err {
+		diskStat.InactiveReason = append(diskStat.InactiveReason, linux.DetailedLinuxType[mountResult])
 	}
+
 	if len(diskStat.InactiveReason) > 0 {
 		diskStat.Active = false
 		log.Debugf("Inactive reason: %s", diskStat.InactiveReason)
 	}
-	// log.Debugf("%+v",diskStat)
+
+	log.Debugf("Mount status: %s", mountResult)
+	log.Debug(diskStat)
 }
 
 func (ddmData *DDMData) Mount() {
