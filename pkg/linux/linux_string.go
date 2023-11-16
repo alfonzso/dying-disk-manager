@@ -8,22 +8,48 @@ func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
-	_ = x[Mounted-0]
-	_ = x[MountedButWrongPlace-1]
-	_ = x[NotMounted-2]
-	_ = x[CommandError-3]
-	_ = x[PathCreated-4]
-	_ = x[PathNotExists-5]
-	_ = x[PathExists-6]
+	_ = x[None-0]
+	_ = x[Mounted-1]
+	_ = x[UMounted-2]
+	_ = x[MountedButWrongPlace-4]
+	_ = x[NotMounted-8]
+	_ = x[CommandError-16]
+	_ = x[PathCreated-32]
+	_ = x[PathNotExists-64]
+	_ = x[PathExists-128]
 }
 
-const _Linux_name = "MountedMountedButWrongPlaceNotMountedCommandErrorPathCreatedPathNotExistsPathExists"
+const (
+	_Linux_name_0 = "NoneMountedUMounted"
+	_Linux_name_1 = "MountedButWrongPlace"
+	_Linux_name_2 = "NotMounted"
+	_Linux_name_3 = "CommandError"
+	_Linux_name_4 = "PathCreated"
+	_Linux_name_5 = "PathNotExists"
+	_Linux_name_6 = "PathExists"
+)
 
-var _Linux_index = [...]uint8{0, 7, 27, 37, 49, 60, 73, 83}
+var (
+	_Linux_index_0 = [...]uint8{0, 4, 11, 19}
+)
 
 func (i Linux) String() string {
-	if i < 0 || i >= Linux(len(_Linux_index)-1) {
+	switch {
+	case 0 <= i && i <= 2:
+		return _Linux_name_0[_Linux_index_0[i]:_Linux_index_0[i+1]]
+	case i == 4:
+		return _Linux_name_1
+	case i == 8:
+		return _Linux_name_2
+	case i == 16:
+		return _Linux_name_3
+	case i == 32:
+		return _Linux_name_4
+	case i == 64:
+		return _Linux_name_5
+	case i == 128:
+		return _Linux_name_6
+	default:
 		return "Linux(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _Linux_name[_Linux_index[i]:_Linux_index[i+1]]
 }

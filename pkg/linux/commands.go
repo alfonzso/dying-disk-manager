@@ -15,14 +15,15 @@ import (
 type Linux int
 
 const (
-	Mounted Linux = iota
-	UMounted
-	MountedButWrongPlace
-	NotMounted
-	CommandError
-	PathCreated
-	PathNotExists
-	PathExists
+	None                 Linux = 0
+	Mounted              Linux = 1
+	UMounted             Linux = 2
+	MountedButWrongPlace Linux = 4
+	NotMounted           Linux = 8
+	CommandError         Linux = 16
+	PathCreated          Linux = 32
+	PathNotExists        Linux = 64
+	PathExists           Linux = 128
 )
 
 var DetailedLinuxType = map[Linux]string{
@@ -37,11 +38,11 @@ var MountWillBeSkip = Mounted | CommandError | MountedButWrongPlace
 // var
 
 func IsMountOrCommandError(err Linux) bool {
-	return (err & MountOrCommandError) != 0
+	return (err & MountOrCommandError) == err
 }
 
 func IsMountWillBeSkip(err Linux) bool {
-	return (err & MountWillBeSkip) != 0
+	return (err & MountWillBeSkip) == err
 }
 
 func CheckDiskAvailability(uuid string) bool {
@@ -131,11 +132,16 @@ func CheckMountStatus(uuid, path string) Linux {
 
 	lsblkFiltered := GrepInList(lsblkOut, uuid)
 	if lsblkFiltered == "" {
-		return NotMounted
+		return NotMounted // TODO create UUIDNotExists error
 	}
 
 	expectedUuidPath := []string{uuid, path}
+	expectedNotMountedUuidPath := []string{uuid, ""}
 	resultUuidPath := common.Split(lsblkFiltered, `\s+`)
+
+	if common.IsEquals[string](expectedNotMountedUuidPath, resultUuidPath) {
+		return NotMounted
+	}
 
 	if common.IsEquals[string](expectedUuidPath, resultUuidPath) {
 		return Mounted
@@ -146,6 +152,7 @@ func CheckMountStatus(uuid, path string) Linux {
 
 func MountCommand(disk config.Disk) Linux {
 	if mountStatus := CheckMountStatus(disk.UUID, disk.Mount.Path); IsMountWillBeSkip(mountStatus) {
+		log.Debugf("[%s] Mount will be skiped", mountStatus)
 		return mountStatus
 	}
 	if MkDir(disk.Mount.Path) == CommandError {

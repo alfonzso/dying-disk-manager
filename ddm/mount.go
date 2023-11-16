@@ -27,11 +27,24 @@ func (ddmData *DDMData) setupMountThread() {
 	}
 }
 
+func ForceRemount(disk config.Disk, diskStat *observer.DiskStat) linux.Linux {
+	log.Debugf("Try to umount => %s", linux.UMount(disk))
+	if linux.Mount(disk) == linux.CommandError {
+		log.Errorf("[%s] Mount failed", diskStat.Name)
+		return linux.CommandError
+	}
+	return linux.Mounted
+}
+
 func periodCheck(disk config.Disk, diskStat *observer.DiskStat) (int, error) {
 	if diskStat.Active {
-		log.Debugf("[%s] Mounting test", diskStat.Name)
 		if linux.IsDiskMountHasError(diskStat.UUID, disk.Mount.Path) {
-
+			log.Debugf("[%s] IsDiskMountHasError", diskStat.Name)
+			if ForceRemount(disk, diskStat) == linux.CommandError {
+				diskStat.Active = false
+				return 0, nil
+			}
+			log.Debugf("[%s] ReMount success", diskStat.Name)
 		}
 	}
 	return 0, nil

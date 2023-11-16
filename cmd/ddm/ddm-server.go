@@ -32,7 +32,7 @@ func main() {
 			fmt.Println(job.Name(), nexTrun, job.Tags())
 		}
 		// jobs := ddm.Scheduler.Jobs()
-		time.Sleep(5 * time.Second)
+		time.Sleep(15 * time.Second)
 	}
 
 	os.Exit(0)
