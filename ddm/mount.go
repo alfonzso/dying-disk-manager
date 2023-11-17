@@ -77,28 +77,25 @@ func (ddmData *DDMData) periodCheck(disk config.Disk, diskStat *observer.DiskSta
 
 func (ddmData *DDMData) BeforeMount() {
 	for _, disk := range ddmData.Disks {
-		currentDiskStat := ddmData.GetDiskStat(disk)
-		currentDiskStat.Active = true
-		if ddmData.Exec.CheckDiskAvailability(disk.UUID).IsUnAvailable() {
-			currentDiskStat.Active = false
-			currentDiskStat.InactiveReason = append(currentDiskStat.InactiveReason, "Disk UUID not found")
+		diskStat := ddmData.GetDiskStat(disk)
+		diskStat.Active = true
+		if status := ddmData.Exec.CheckDiskAvailability(disk.UUID); status.IsDiskUnAvailableOrUUIDNotExists() {
+			diskStat.Active = false
+			diskStat.InactiveReason = append(diskStat.InactiveReason, linux.DetailedLinuxType[status])
 		}
 	}
 }
 
 func (ddmData *DDMData) linuxMount(disk config.Disk, diskStat *observer.DiskStat) {
-	mountResult := ddmData.Exec.MountCommand(disk)
+	status := ddmData.Exec.MountCommand(disk)
 
-	if mountResult.IsMountOrCommandError() {
-		diskStat.InactiveReason = append(diskStat.InactiveReason, linux.DetailedLinuxType[mountResult])
-	}
-
-	if len(diskStat.InactiveReason) > 0 {
+	if status.IsMountOrCommandError() {
 		diskStat.Active = false
+		diskStat.InactiveReason = append(diskStat.InactiveReason, linux.DetailedLinuxType[status])
 		log.Debugf("Inactive reason: %s", diskStat.InactiveReason)
 	}
 
-	log.Debugf("Mount status: %s", mountResult)
+	log.Debugf("Mount status: %s", status)
 	log.Debug(diskStat)
 }
 

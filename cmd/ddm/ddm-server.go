@@ -21,6 +21,7 @@ func main() {
 	observer := observer.New()
 	ddm := ddm.New(observer, config)
 
+	ddm.BeforeMount()
 	ddm.Mount()
 
 	go ddm.Threading()

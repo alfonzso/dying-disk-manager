@@ -39,10 +39,14 @@ var DetailedLinuxType = map[LinuxCommands]string{
 	CommandError:         "Command error happened",
 	NotMounted:           "Disk not or cannot mounted",
 	MountedButWrongPlace: "Disk already mounted somewhere else",
+	UUIDNotExists:        "Disk not found by UUID",
+	DiskAvailable:        "Disk found by ls /dev/disk/by-uuid",
+	DiskUnAvailable:      "Disk not found by ls /dev/disk/by-uuid",
 }
 
 var MountOrCommandError = MountedButWrongPlace | NotMounted | UUIDNotExists | CommandError
 var MountWillBeSkip = Mounted | MountedButWrongPlace | UUIDNotExists | CommandError
+var DiskUnAvailableOrUUIDNotExists = DiskUnAvailable | CommandError
 
 func (l LinuxCommands) IsSucceed() bool {
 	return l == CommandSuccess
@@ -62,6 +66,10 @@ func (err LinuxCommands) IsMountOrCommandError() bool {
 
 func (err LinuxCommands) IsMountWillBeSkip() bool {
 	return (err & MountWillBeSkip) == err
+}
+
+func (err LinuxCommands) IsDiskUnAvailableOrUUIDNotExists() bool {
+	return (err & DiskUnAvailableOrUUIDNotExists) == err
 }
 
 func (l LinuxCommands) IsAvailable() bool {
