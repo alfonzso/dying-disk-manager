@@ -1,8 +1,6 @@
 package ddm
 
 import (
-	"time"
-
 	"github.com/alfonzso/dying-disk-manager/pkg/config"
 	"github.com/alfonzso/dying-disk-manager/pkg/linux"
 	"github.com/alfonzso/dying-disk-manager/pkg/observer"
@@ -12,25 +10,20 @@ import (
 func (ddmData *DDMData) setupRepairThread() {
 	for _, disk := range ddmData.Disks {
 		diskStat := ddmData.GetDiskStat(disk)
-		if diskStat.RepairThreadIsRunning {
+		if diskStat.Repair.ThreadIsRunning {
 			ddmData.Scheduler.RemoveByTags(diskStat.UUID)
 			if ddmData.PreRepair(disk, diskStat).IsSucceed() {
 				ddmData.Repair(disk)
 			}
-			diskStat.RepairThreadIsRunning = false
+			diskStat.Repair.ThreadIsRunning = false
 		}
 	}
 }
 
 func (ddmData *DDMData) PreRepair(disk config.Disk, diskStat *observer.DiskStat) linux.LinuxCommands {
 	log.Debugf("[%s] PreRepair ...", diskStat.Name)
-	for {
-		if diskStat.IsMountAndTestActionInIddleStatus() {
-			break
-		}
-		log.Debugf("[%s] PreRepair wait actions to be done ", diskStat.Name)
-		time.Sleep(10 * time.Second)
-	}
+
+	WaitForThreadToBeIddle([]observer.Action{diskStat.Mount, diskStat.Test})
 
 	if ddmData.Exec.UMount(disk).IsFailed() {
 		log.Debugf("[%s] PreRepair failed to umount disk ... ", diskStat.Name)

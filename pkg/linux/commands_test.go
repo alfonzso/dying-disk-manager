@@ -62,8 +62,8 @@ func TestLinux_IsMountOrCommandError(t *testing.T) {
 }
 
 func TestExecCommandsType_CheckDiskAvailability(t *testing.T) {
-	lslaByUUID := `UUID                                   MOUNTPOINT
-	44fceed1-3277-4d53-8b1e-d953b6234a77   /mnt/disks001
+	lslaByUUID := `
+	197b5ee3-a25f-4c3f-824c-4c9612d8c856  302d0ce6-30a1-43c8-b0c9-825da670f443  44fceed1-3277-4d53-8b1e-d953b6234a77  4f94179d-2ddf-404b-8475-f0a643bd1639  de67ce89-8a24-4068-a7c0-8c5d67eb1fac
 	`
 	type fields struct {
 		checkDiskAvailability func(string) ([]byte, error)
@@ -75,11 +75,11 @@ func TestExecCommandsType_CheckDiskAvailability(t *testing.T) {
 		name   string
 		fields fields
 		args   args
-		want   bool
+		want   LinuxCommands
 	}{
-		{"OK", fields{checkDiskAvailability: func(s string) ([]byte, error) { return []byte(lslaByUUID), nil }}, args{"no"}, false},
-		{"OK", fields{checkDiskAvailability: func(s string) ([]byte, error) { return []byte(lslaByUUID), nil }}, args{"de67ce89-8a24-4068-a7c0-8c5d67eb1fac"}, true},
-		{"OK", fields{checkDiskAvailability: func(s string) ([]byte, error) { return []byte(lslaByUUID), errors.New("eeee") }}, args{"..."}, false},
+		{"DiskUnAvailable", fields{checkDiskAvailability: func(s string) ([]byte, error) { return []byte(lslaByUUID), nil }}, args{"no"}, DiskUnAvailable},
+		{"DiskAvailable", fields{checkDiskAvailability: func(s string) ([]byte, error) { return []byte(lslaByUUID), nil }}, args{"de67ce89-8a24-4068-a7c0-8c5d67eb1fac"}, DiskAvailable},
+		{"Error", fields{checkDiskAvailability: func(s string) ([]byte, error) { return []byte(lslaByUUID), errors.New("eeee") }}, args{"..."}, CommandError},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

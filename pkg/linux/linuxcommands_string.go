@@ -16,12 +16,14 @@ func _() {
 	_ = x[UUIDNotExists-32]
 	_ = x[CommandError-64]
 	_ = x[CommandSuccess-128]
-	_ = x[PathCreated-256]
-	_ = x[PathNotExists-512]
-	_ = x[PathExists-1024]
+	_ = x[DiskAvailable-256]
+	_ = x[DiskUnAvailable-512]
+	_ = x[PathCreated-1024]
+	_ = x[PathNotExists-2048]
+	_ = x[PathExists-4096]
 }
 
-const _LinuxCommands_name = "NoneMountedUMountedMountedButWrongPlaceNotMountedUUIDNotExistsCommandErrorCommandSuccessPathCreatedPathNotExistsPathExists"
+const _LinuxCommands_name = "NoneMountedUMountedMountedButWrongPlaceNotMountedUUIDNotExistsCommandErrorCommandSuccessDiskAvailableDiskUnAvailablePathCreatedPathNotExistsPathExists"
 
 var _LinuxCommands_map = map[LinuxCommands]string{
 	0:    _LinuxCommands_name[0:4],
@@ -32,9 +34,11 @@ var _LinuxCommands_map = map[LinuxCommands]string{
 	32:   _LinuxCommands_name[49:62],
 	64:   _LinuxCommands_name[62:74],
 	128:  _LinuxCommands_name[74:88],
-	256:  _LinuxCommands_name[88:99],
-	512:  _LinuxCommands_name[99:112],
-	1024: _LinuxCommands_name[112:122],
+	256:  _LinuxCommands_name[88:101],
+	512:  _LinuxCommands_name[101:116],
+	1024: _LinuxCommands_name[116:127],
+	2048: _LinuxCommands_name[127:140],
+	4096: _LinuxCommands_name[140:150],
 }
 
 func (i LinuxCommands) String() string {

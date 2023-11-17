@@ -40,6 +40,23 @@ func (ddmData *DDMData) Threading() {
 	}
 }
 
+func WaitForThreadToBeIddle(as []observer.Action) {
+	for {
+		iddleList := []bool{}
+		for _, diskAs := range as {
+			diskAs.DisabledByAction = true
+			if diskAs.Status == observer.Iddle {
+				iddleList = append(iddleList, true)
+			}
+		}
+		if len(iddleList) == len(as) {
+			return
+		}
+		log.Debug("WaitForThreads wait actions to be done ")
+		time.Sleep(10 * time.Second)
+	}
+}
+
 func (ddmData *DDMData) SetupCron(
 	taskName string,
 	function any,

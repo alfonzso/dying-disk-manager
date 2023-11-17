@@ -3,6 +3,7 @@ package linux
 import (
 	"fmt"
 	"os/exec"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -27,6 +28,8 @@ const (
 	UUIDNotExists
 	CommandError
 	CommandSuccess
+	DiskAvailable
+	DiskUnAvailable
 	PathCreated
 	PathNotExists
 	PathExists
@@ -61,6 +64,14 @@ func (err LinuxCommands) IsMountWillBeSkip() bool {
 	return (err & MountWillBeSkip) == err
 }
 
+func (l LinuxCommands) IsAvailable() bool {
+	return l == DiskAvailable
+}
+
+func (l LinuxCommands) IsUnAvailable() bool {
+	return l == DiskUnAvailable
+}
+
 type ExecCommandsType struct {
 	// GrepInList              func([]string, string) string
 	// LsblkCMD                func() ([]string, LinuxCommands)
@@ -89,14 +100,17 @@ func NewExecCommand() *ExecCommandsType {
 	return execC
 }
 
-func (e ExecCommandsType) CheckDiskAvailability(uuid string) bool {
+func (e ExecCommandsType) CheckDiskAvailability(uuid string) LinuxCommands {
 	out, err := e.checkDiskAvailability("ls /dev/disk/by-uuid/")
 	if err != nil {
 		log.Errorf(fmt.Sprint(err) + ": " + string(out))
-		return false
+		return CommandError
 	}
-	disks := strings.Split(string(out[:]), " ")
-	return slices.Contains(disks, uuid)
+	output := regexp.MustCompile(`[\n\t]`).ReplaceAllString(string(out[:]), "")
+	if slices.Contains(strings.Split(output, " "), uuid) {
+		return DiskAvailable
+	}
+	return DiskUnAvailable
 }
 
 func (e ExecCommandsType) CheckMountPathExistence(path string) LinuxCommands {
