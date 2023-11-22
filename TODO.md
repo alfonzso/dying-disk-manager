@@ -51,3 +51,9 @@ task -> loop disks
     -> is enabled
     -> is disk active
     task -> test
+
+[1334152.944264] EXT4-fs (sde1): initial error at time 1699921467: ext4_find_extent:921: inode 5898266
+[1334152.944275] EXT4-fs (sde1): last error at time 1700029631: ext4_find_extent:921: inode 5898271
+[1426432.083661] EXT4-fs (sde1): error count since last fsck: 2382
+[1426432.083675] EXT4-fs (sde1): initial error at time 1699921467: ext4_find_extent:921: inode 5898266
+[1426432.083689] EXT4-fs (sde1): last error at time 1700029631: ext4_find_extent:921: inode 5898271
