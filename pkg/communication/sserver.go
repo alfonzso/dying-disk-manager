@@ -4,14 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	b64 "encoding/base64"
-	"fmt"
 	"io"
-	"log"
 	"net"
 	"strings"
 
 	"github.com/alfonzso/dying-disk-manager/ddm"
 	"github.com/rodaine/table"
+	log "github.com/sirupsen/logrus"
 )
 
 func Socket(ddmd *ddm.DDMData) {
@@ -68,6 +67,24 @@ func printActionts(ddmd *ddm.DDMData) *bytes.Buffer {
 	return buff
 }
 
+func printTasks(ddmd *ddm.DDMData) *bytes.Buffer {
+	table := table.New("Name", "NextRun", "Tags")
+	buff := new(bytes.Buffer)
+	table.WithWriter(buff)
+	// table.AddRow("Mount", ddmd.Scheduler)
+	for _, job := range ddmd.Scheduler.Jobs() {
+		nextRun, _ := job.NextRun()
+		// fmt.Println(job.Name(), nexTrun, job.Tags())
+		table.AddRow(job.Name(), nextRun, job.Tags())
+	}
+	// for _, disk := range ddmd.DiskStat {
+	// 	table.AddRow("Test", disk.Test.Status, disk.Test.ThreadIsRunning, disk.Test.DisabledByAction)
+	// 	table.AddRow("Repair", disk.Repair.Status, disk.Repair.ThreadIsRunning, disk.Repair.DisabledByAction)
+	// }
+	table.Print()
+	return buff
+}
+
 func handleClientRequest(con net.Conn, ddmd *ddm.DDMData) {
 	defer con.Close()
 
@@ -82,11 +99,11 @@ func handleClientRequest(con net.Conn, ddmd *ddm.DDMData) {
 		case nil:
 			clientRequest := strings.TrimSpace(clientRequest)
 			if clientRequest == ":QUIT" {
-				log.Println("client requested server to close the connection so closing")
+				log.Debug("client requested server to close the connection so closing")
 				return
 			}
 
-			log.Println(clientRequest)
+			// log.Println(clientRequest)
 
 			if clientRequest == ":status" {
 				buff = printDiskStat(ddmd)
@@ -94,11 +111,14 @@ func handleClientRequest(con net.Conn, ddmd *ddm.DDMData) {
 			if clientRequest == ":mount" {
 				buff = printActionts(ddmd)
 			}
+			if clientRequest == ":tasks" {
+				buff = printTasks(ddmd)
+			}
 		case io.EOF:
-			log.Println("client closed the connection by terminating the process")
+			log.Debug("client closed the connection by terminating the process")
 			return
 		default:
-			log.Printf("error: %v\n", err)
+			log.Errorf("error: %v\n", err)
 			return
 		}
 
@@ -117,16 +137,20 @@ func handleClientRequest(con net.Conn, ddmd *ddm.DDMData) {
 		// msg := append([]byte("\n"), buf.Bytes()...)
 		// msg = append(msg, '\n')
 
+		// // mm := []byte("\n"+ buf.Bytes()... + "\000")
+		// msg := []byte("\n" + buff.String() + "\000")
+		// sEnc := b64.StdEncoding.EncodeToString(msg)
+		// fafa := []byte(sEnc[:] + "\000")
 		// mm := []byte("\n"+ buf.Bytes()... + "\000")
-		msg := []byte("\n" + buff.String() + "\000")
-		sEnc := b64.StdEncoding.EncodeToString(msg)
-		fafa := []byte(sEnc[:] + "\000")
-		__n, err := con.Write(fafa)
-		if err != nil {
+		// msg := []byte("\n" + buff.String() + "\000")
+		sEnc := b64.StdEncoding.EncodeToString([]byte("\n"+buff.String())) + "\000"
+		// fafa := []byte(sEnc[:] + "\000")
+		// _, err = con.Write(fafa)
+		if _, err = con.Write([]byte(sEnc[:])); err != nil {
 			log.Printf("failed to respond to client: %v\n", err)
 		}
 
-		fmt.Println("----------> ", __n)
+		// fmt.Println("----------> ", __n)
 		// fmt.Println("----------> ", string(msg[:]))
 		// Responding to the client request
 		// if _, err = con.Write(buf.Bytes()); err != nil {

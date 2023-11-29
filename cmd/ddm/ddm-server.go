@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"time"
 
@@ -29,10 +28,10 @@ func main() {
 	communication.Socket(ddm)
 	for {
 		// sleeping
-		for _, job := range ddm.Scheduler.Jobs() {
-			nexTrun, _ := job.NextRun()
-			fmt.Println(job.Name(), nexTrun, job.Tags())
-		}
+		// for _, job := range ddm.Scheduler.Jobs() {
+		// 	nexTrun, _ := job.NextRun()
+		// 	fmt.Println(job.Name(), nexTrun, job.Tags())
+		// }
 		// jobs := ddm.Scheduler.Jobs()
 		time.Sleep(15 * time.Second)
 	}

@@ -24,7 +24,7 @@ func (ddmData *DDMData) setupMountThread() {
 				"MOUNT",
 				ddmData.periodCheck,
 				disk,
-				diskStat,
+				// diskStat,
 				GetCronExpr(disk.Mount.PeriodicCheck.Cron, ddmData.Common.Mount.PeriodicCheck.Cron),
 			)
 			diskStat.Mount.ThreadIsRunning = true
@@ -41,37 +41,32 @@ func (ddmData *DDMData) ForceRemount(disk config.Disk, diskStat *observer.DiskSt
 	return linux.Mounted
 }
 
-func ThreadContinue(diskStat *observer.DiskStat) bool {
-	if diskStat.IsNotActiv() || diskStat.Mount.DisabledByAction {
-		log.Warningf("[%s] MountThread => Disk deactivated => active: %t, disabledBy: %t",
-			diskStat.Name, diskStat.Active, diskStat.Mount.DisabledByAction,
-		)
-		return true
-	}
-	return false
-}
+func (ddmData *DDMData) periodCheck(disk config.Disk) (int, error) {
+	currentDiskStat := ddmData.GetDiskStat(disk)
+	currentDiskStat.Mount.Status = observer.Running
 
-func (ddmData *DDMData) periodCheck(disk config.Disk, diskStat *observer.DiskStat) (int, error) {
-	diskStat.Mount.Status = observer.Running
-
-	if ThreadContinue(diskStat) {
+	if IsInActiveOrDisabled("Test", currentDiskStat, currentDiskStat.Test) {
+		currentDiskStat.Mount.Status = observer.Iddle
 		return 0, nil
 	}
 
-	if !ddmData.Exec.CheckMountStatus(diskStat.UUID, disk.Mount.Path).IsMountOrCommandError() {
+	if !ddmData.Exec.CheckMountStatus(currentDiskStat.UUID, disk.Mount.Path).IsMountOrCommandError() {
+		currentDiskStat.Mount.Status = observer.Iddle
 		return 0, nil
 	}
 
-	WaitForThreadToBeIddle([]observer.Action{diskStat.Test})
+	WaitForThreadToBeIddle([]observer.Action{currentDiskStat.Test})
 
-	if ddmData.ForceRemount(disk, diskStat).IsFailed() {
-		log.Errorf("[%s] ReMount failed", diskStat.Name)
-		diskStat.Active = false //TODO may trigger a repair ...
-		return 0, nil
+	if ddmData.ForceRemount(disk, currentDiskStat).IsFailed() {
+		log.Errorf("[%s] ReMount failed", currentDiskStat.Name)
+		currentDiskStat.Active = false
+		currentDiskStat.Repair.ThreadIsRunning = true
+	} else {
+		log.Debugf("[%s] ReMount success", currentDiskStat.Name)
 	}
 
-	log.Debugf("[%s] ReMount success", diskStat.Name)
-	diskStat.Mount.Status = observer.Iddle
+	currentDiskStat.Test.Status = observer.Running
+	currentDiskStat.Mount.Status = observer.Iddle
 	return 0, nil
 }
 

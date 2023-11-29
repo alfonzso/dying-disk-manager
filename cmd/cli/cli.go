@@ -30,7 +30,7 @@ func main() {
 	// bufAll = append(bufAll, 'a')
 	// buf := make([]byte, 10)
 
-	for _, command := range []string{":status", ":mount"} {
+	for _, command := range []string{":status", ":mount", ":tasks"} {
 		// Waiting for the client request
 		// clientRequest, err := clientReader.ReadString('\n')
 
@@ -81,7 +81,7 @@ func main() {
 			// log.Println(string(bufAll[:]))
 			sDec, _ := b64.StdEncoding.DecodeString(serverResponse)
 			// log.Println(string(sDec[:]))
-			fmt.Println(string(sDec[:]))
+			fmt.Print(string(sDec[:]))
 			// log.Println(string(sDec[:]))
 			// log.Println(strings.TrimSpace(serverResponse))
 		case io.EOF:

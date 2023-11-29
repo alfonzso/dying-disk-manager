@@ -40,6 +40,17 @@ func (ddmData *DDMData) Threading() {
 	}
 }
 
+func IsInActiveOrDisabled(actionName string, diskStat *observer.DiskStat, action observer.Action) bool {
+	if diskStat.IsInActive() || diskStat.Test.DisabledByAction {
+		log.Warningf("[%s] %sThread => Disk deactivated => active: %t, disabledBy: %t",
+			diskStat.Name, actionName, diskStat.Active, action.DisabledByAction,
+		)
+		action.Status = observer.Iddle
+		return true
+	}
+	return false
+}
+
 func WaitForThreadToBeIddle(as []observer.Action) {
 	for {
 		iddleList := []bool{}
@@ -61,7 +72,7 @@ func (ddmData *DDMData) SetupCron(
 	taskName string,
 	function any,
 	disk config.Disk,
-	diskStat *observer.DiskStat,
+	// diskStat *observer.DiskStat,
 	cron string,
 ) (int, error) {
 	_, err := ddmData.Scheduler.NewJob(
@@ -71,7 +82,7 @@ func (ddmData *DDMData) SetupCron(
 		gocron.NewTask(
 			function,
 			disk,
-			diskStat,
+			// diskStat,
 		),
 		gocron.WithName(taskName),
 		gocron.WithTags(disk.UUID),

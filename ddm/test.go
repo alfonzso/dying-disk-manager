@@ -24,7 +24,6 @@ func (ddmData *DDMData) setupTestThread() {
 				"TEST",
 				ddmData.Test,
 				disk,
-				diskStat,
 				GetCronExpr(disk.Test.Cron, ddmData.Common.Test.Cron),
 			)
 			diskStat.Test.ThreadIsRunning = true
@@ -32,24 +31,21 @@ func (ddmData *DDMData) setupTestThread() {
 	}
 }
 
-func (ddmData *DDMData) Test(disk config.Disk, diskStat *observer.DiskStat) (int, error) {
-	diskStat.Test.Status = observer.Running
+func (ddmData *DDMData) Test(disk config.Disk) (int, error) {
+	currentDiskStat := ddmData.GetDiskStat(disk)
+	currentDiskStat.Test.Status = observer.Running
 
-	if diskStat.IsNotActiv() || diskStat.Test.DisabledByAction {
-		log.Warningf("[%s] TestThread => Disk deactivated => active: %t, disabledBy: %t",
-			diskStat.Name, diskStat.Active, diskStat.Test.DisabledByAction,
-		)
-		diskStat.Test.Status = observer.Iddle
+	if IsInActiveOrDisabled("Test", currentDiskStat, currentDiskStat.Test) {
+		currentDiskStat.Test.Status = observer.Iddle
 		return 0, nil
 	}
 
 	if ddmData.Exec.WriteIntoDisk(disk.Mount.Path).IsFailed() {
 		log.Debugf("[%s] Write to disk failed, triggering repair", disk.Name)
-		diskStat.Active = false
-		diskStat.Repair.ThreadIsRunning = true
-		return 0, nil
+		currentDiskStat.Active = false
+		currentDiskStat.Repair.ThreadIsRunning = true
 	}
 
-	diskStat.Test.Status = observer.Iddle
+	currentDiskStat.Test.Status = observer.Iddle
 	return 0, nil
 }

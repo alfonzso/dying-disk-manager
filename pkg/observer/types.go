@@ -54,7 +54,7 @@ func (d DiskStat) IsActiv() bool {
 	return d.Active
 }
 
-func (d DiskStat) IsNotActiv() bool {
+func (d DiskStat) IsInActive() bool {
 	return !d.Active
 }
 
