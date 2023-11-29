@@ -40,7 +40,8 @@ func (ddmData *DDMData) Test(disk config.Disk) (int, error) {
 		return 0, nil
 	}
 
-	if ddmData.Exec.WriteIntoDisk(disk.Mount.Path).IsFailed() {
+	// if ddmData.Exec.WriteIntoDisk(disk.Mount.Path).IsFailed() {
+	if ddmData.Exec.RunDryFsck(disk.UUID).IsFailed() {
 		log.Debugf("[%s] Write to disk failed, triggering repair", disk.Name)
 		currentDiskStat.Active = false
 		currentDiskStat.Repair.ThreadIsRunning = true

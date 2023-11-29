@@ -42,31 +42,32 @@ func (ddmData *DDMData) ForceRemount(disk config.Disk, diskStat *observer.DiskSt
 }
 
 func (ddmData *DDMData) periodCheck(disk config.Disk) (int, error) {
-	currentDiskStat := ddmData.GetDiskStat(disk)
-	currentDiskStat.Mount.Status = observer.Running
+	statForSelectedDisk := ddmData.GetDiskStat(disk)
+	actions := []observer.Action{statForSelectedDisk.Test}
+	statForSelectedDisk.Mount.Status = observer.Running
 
-	if IsInActiveOrDisabled("Test", currentDiskStat, currentDiskStat.Test) {
-		currentDiskStat.Mount.Status = observer.Iddle
+	if IsInActiveOrDisabled("Mount", statForSelectedDisk, statForSelectedDisk.Mount) {
+		statForSelectedDisk.Mount.Status = observer.Iddle
 		return 0, nil
 	}
 
-	if !ddmData.Exec.CheckMountStatus(currentDiskStat.UUID, disk.Mount.Path).IsMountOrCommandError() {
-		currentDiskStat.Mount.Status = observer.Iddle
+	if !ddmData.Exec.CheckMountStatus(statForSelectedDisk.UUID, disk.Mount.Path).IsMountOrCommandError() {
+		statForSelectedDisk.Mount.Status = observer.Iddle
 		return 0, nil
 	}
 
-	WaitForThreadToBeIddle([]observer.Action{currentDiskStat.Test})
+	WaitForThreadToBeIddle(actions)
 
-	if ddmData.ForceRemount(disk, currentDiskStat).IsFailed() {
-		log.Errorf("[%s] ReMount failed", currentDiskStat.Name)
-		currentDiskStat.Active = false
-		currentDiskStat.Repair.ThreadIsRunning = true
+	if ddmData.ForceRemount(disk, statForSelectedDisk).IsFailed() {
+		log.Errorf("[%s] ReMount failed", statForSelectedDisk.Name)
+		statForSelectedDisk.Active = false
+		statForSelectedDisk.Repair.ThreadIsRunning = true
 	} else {
-		log.Debugf("[%s] ReMount success", currentDiskStat.Name)
+		log.Debugf("[%s] ReMount success", statForSelectedDisk.Name)
 	}
 
-	currentDiskStat.Test.Status = observer.Running
-	currentDiskStat.Mount.Status = observer.Iddle
+	StartThreads(actions)
+	statForSelectedDisk.Mount.Status = observer.Iddle
 	return 0, nil
 }
 

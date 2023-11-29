@@ -90,6 +90,8 @@ type ExecCommandsType struct {
 	umount                  func(string) ([]byte, error)
 	lsblk                   func(string) ([]byte, error)
 	writeIntoDisk           func(string) ([]byte, error)
+	runDryFsck              func(string) ([]byte, error)
+	runFsck                 func(string) ([]byte, error)
 }
 
 func NewExecCommand() *ExecCommandsType {
@@ -102,6 +104,8 @@ func NewExecCommand() *ExecCommandsType {
 		umount:                  basicCmd,
 		lsblk:                   basicCmd,
 		writeIntoDisk:           basicCmd,
+		runDryFsck:              basicCmd,
+		runFsck:                 basicCmd,
 	}
 	// execC.LsblkCMD = execC.Lsblk
 	// execC.GrepInList = common.GrepInList
@@ -171,6 +175,26 @@ func (e ExecCommandsType) Lsblk() ([]string, LinuxCommands) {
 func (e ExecCommandsType) WriteIntoDisk(path string) LinuxCommands {
 	out, err := e.writeIntoDisk(fmt.Sprintf(`sudo date > %s/.tstfile`, path))
 	if err != nil {
+		log.Errorf(fmt.Sprint(err) + ": " + string(out))
+		return CommandError
+	}
+	return CommandSuccess
+}
+
+func (e ExecCommandsType) RunDryFsck(uuid string) LinuxCommands {
+	out, err := e.runDryFsck(fmt.Sprintf(`sudo fsck -fn /dev/disk/by-uuid/%s`, uuid))
+	if err != nil {
+		if fmt.Sprint(err) != "exit status 4" {
+			log.Errorf(fmt.Sprint(err) + ": " + string(out))
+		}
+		return CommandError
+	}
+	return CommandSuccess
+}
+
+func (e ExecCommandsType) RunFsck(uuid string) LinuxCommands {
+	out, err := e.runFsck(fmt.Sprintf(`sudo fsck -fy /dev/disk/by-uuid/%s`, uuid))
+	if err != nil && fmt.Sprint(err) != "exit status 1" {
 		log.Errorf(fmt.Sprint(err) + ": " + string(out))
 		return CommandError
 	}

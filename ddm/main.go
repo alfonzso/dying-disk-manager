@@ -26,7 +26,7 @@ func GetCronExpr(diskCron string, commonCron string) string {
 }
 
 func (ddmData *DDMData) Threading() {
-	log.Debug("Thread => Test is started")
+	log.Debug("==> Threads are started")
 	for {
 		// if in repair mode
 		// then stop schedulers (threads)
@@ -36,12 +36,12 @@ func (ddmData *DDMData) Threading() {
 		ddmData.setupTestThread()
 		ddmData.setupMountThread()
 		ddmData.setupRepairThread()
-		time.Sleep(30 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 }
 
 func IsInActiveOrDisabled(actionName string, diskStat *observer.DiskStat, action observer.Action) bool {
-	if diskStat.IsInActive() || diskStat.Test.DisabledByAction {
+	if diskStat.IsInActive() || action.DisabledByAction {
 		log.Warningf("[%s] %sThread => Disk deactivated => active: %t, disabledBy: %t",
 			diskStat.Name, actionName, diskStat.Active, action.DisabledByAction,
 		)
@@ -65,6 +65,13 @@ func WaitForThreadToBeIddle(as []observer.Action) {
 		}
 		log.Debug("WaitForThreads wait actions to be done ")
 		time.Sleep(10 * time.Second)
+	}
+}
+
+func StartThreads(as []observer.Action) {
+	for _, diskAs := range as {
+		diskAs.DisabledByAction = false
+		diskAs.Status = observer.Running
 	}
 }
 

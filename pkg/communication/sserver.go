@@ -55,13 +55,13 @@ func printDiskStat(ddmd *ddm.DDMData) *bytes.Buffer {
 }
 
 func printActionts(ddmd *ddm.DDMData) *bytes.Buffer {
-	table := table.New("Action", "Status", "ThreadIsRunning", "DisabledByAction")
+	table := table.New("DiskName", "Action", "Status", "ThreadIsRunning", "DisabledByAction")
 	buff := new(bytes.Buffer)
 	table.WithWriter(buff)
 	for _, disk := range ddmd.DiskStat {
-		table.AddRow("Mount", disk.Mount.Status, disk.Mount.ThreadIsRunning, disk.Mount.DisabledByAction)
-		table.AddRow("Test", disk.Test.Status, disk.Test.ThreadIsRunning, disk.Test.DisabledByAction)
-		table.AddRow("Repair", disk.Repair.Status, disk.Repair.ThreadIsRunning, disk.Repair.DisabledByAction)
+		table.AddRow(disk.Name, "Mount", disk.Mount.Status, disk.Mount.ThreadIsRunning, disk.Mount.DisabledByAction)
+		table.AddRow(disk.Name, "Test", disk.Test.Status, disk.Test.ThreadIsRunning, disk.Test.DisabledByAction)
+		table.AddRow(disk.Name, "Repair", disk.Repair.Status, disk.Repair.ThreadIsRunning, disk.Repair.DisabledByAction)
 	}
 	table.Print()
 	return buff
@@ -115,7 +115,7 @@ func handleClientRequest(con net.Conn, ddmd *ddm.DDMData) {
 				buff = printTasks(ddmd)
 			}
 		case io.EOF:
-			log.Debug("client closed the connection by terminating the process")
+			// log.Debug("client closed the connection by terminating the process")
 			return
 		default:
 			log.Errorf("error: %v\n", err)

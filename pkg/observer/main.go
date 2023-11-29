@@ -1,6 +1,7 @@
 package observer
 
 import (
+	"fmt"
 	"slices"
 
 	"github.com/adhocore/gronx"
@@ -35,5 +36,6 @@ func (d *DDMObserver) IsCronDue(expr string) bool {
 
 func New() *DDMObserver {
 	d := &DDMObserver{DiskStat: []DiskStat{}}
+	fmt.Printf("%#v\n",d)
 	return d
 }

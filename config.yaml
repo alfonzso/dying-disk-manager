@@ -14,7 +14,7 @@ common:
     commandAfter: "|"
 disks:
   - name: hdd10g
-    uuid: 44fceed1-3277-4d53-8b1e-d953b6234a77
+    uuid: e65c47ed-d20f-4e83-9177-7a0330281252
     mount:
       enabled: true
       path: /mnt/disks001 # if mount enabled then its a required config
