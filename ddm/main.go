@@ -36,7 +36,7 @@ func (ddmData *DDMData) Threading() {
 		ddmData.setupTestThread()
 		ddmData.setupMountThread()
 		ddmData.setupRepairThread()
-		time.Sleep(1 * time.Second)
+		time.Sleep(10 * time.Second)
 	}
 }
 

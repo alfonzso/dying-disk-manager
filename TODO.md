@@ -2,6 +2,16 @@ sudo dd if=/dev/urandom of=/dev/sdd bs=1M count=1 conv=notrunc
 sudo dd if=/dev/zero of=/dev/sdd bs=512 count=1
 echo 1 > /sys/block/sdd/make_it_fail
 
+in config.yaml:
+  * all not optional fields given
+  * check names not equals
+  * check path not the same of disk
+
+sudo debugfs /dev/sdd1 -w
+write /dev/null file-to-clri
+clri file-to-clri
+q
+
 START
  ˇˇˇ
 check config

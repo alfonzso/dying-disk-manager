@@ -13,32 +13,37 @@ common:
     commandBefore: "|"
     commandAfter: "|"
 disks:
-  - name: hdd10g
+  - name: hdd10gV0
     uuid: e65c47ed-d20f-4e83-9177-7a0330281252
     mount:
-      enabled: true
+      # enabled: true
       path: /mnt/disks001 # if mount enabled then its a required config
-      periodicCheck: # check is mounted if not remount
-        enabled: true
-        cron: "* * * * *"
-    test:
-      enabled: true
-      cron: "* * * * *"
-    repair:
-      enabled: true
-      # from uuid get device "name" as 'sd[xyz]'
-      # and use as sd[xyz]<diskNumber>
-      diskNumber: 1
-      command: |
-        sudo fsck -y $$DISK$$
-      commandBefore: |
-        cd /home/admin/work/samba
-        docker compose down
-        umount /storage
-      commandAfter: |
-        cd /home/admin/work/samba
-        docker compose up
-        sudo mount /storage
+  - name: hdd10gV1
+    uuid: de67ce89-8a24-4068-a7c0-8c5d67eb1fac
+    mount:
+      # enabled: true
+      path: /mnt/disks002 # if mount enabled then its a required config
+      # periodicCheck: # check is mounted if not remount
+      #   enabled: true
+      #   cron: "* * * * *"
+    # test:
+    #   enabled: true
+    #   cron: "* * * * *"
+    # repair:
+    #   enabled: true
+    #   # from uuid get device "name" as 'sd[xyz]'
+    #   # and use as sd[xyz]<diskNumber>
+    #   # diskNumber: 1
+    #   command: |
+    #     sudo fsck -y $$DISK$$
+    #   commandBefore: |
+    #     cd /home/admin/work/samba
+    #     docker compose down
+    #     umount /storage
+    #   commandAfter: |
+    #     cd /home/admin/work/samba
+    #     docker compose up
+    #     sudo mount /storage
 
 # 44fceed1-3277-4d53-8b1e-d953b6234a77 -> ../../sdc1
 # 4f94179d-2ddf-404b-8475-f0a643bd1639 -> ../../sdb1
