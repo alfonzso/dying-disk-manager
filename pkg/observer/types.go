@@ -9,6 +9,7 @@ type DDMObserver struct {
 	DiskStat []DiskStat
 }
 
+//go:generate stringer -type=ActionStatus
 type ActionStatus int
 
 const (
@@ -28,6 +29,10 @@ func (as ActionStatus) IsIddle() bool {
 
 func (as ActionStatus) IsRunning() bool {
 	return as == Running
+}
+
+func (as Action) Print() string {
+	return fmt.Sprintf("Status: %s, ThreadIsRunning: %t, DisabledByAction: %t", as.Status.String(), as.ThreadIsRunning, as.DisabledByAction)
 }
 
 type DiskStat struct {
