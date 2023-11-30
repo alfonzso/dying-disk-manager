@@ -1,6 +1,8 @@
 package ddm
 
 import (
+	"fmt"
+
 	"github.com/alfonzso/dying-disk-manager/pkg/config"
 	"github.com/alfonzso/dying-disk-manager/pkg/linux"
 	"github.com/alfonzso/dying-disk-manager/pkg/observer"
@@ -11,15 +13,15 @@ func (ddmData *DDMData) setupRepairThread() {
 	for _, disk := range ddmData.Disks {
 		statForSelectedDisk := ddmData.GetDiskStat(disk)
 		statForSelectedDisk.Repair.Status = observer.Iddle
-		actions := []observer.Action{statForSelectedDisk.Mount, statForSelectedDisk.Test}
+		actions := []*observer.Action{&statForSelectedDisk.Mount, &statForSelectedDisk.Test}
 
 		if statForSelectedDisk.Repair.ThreadIsRunning {
 			statForSelectedDisk.Repair.Status = observer.Running
 			ddmData.Scheduler.RemoveByTags(statForSelectedDisk.UUID)
 			statForSelectedDisk.Mount.ThreadIsRunning = false
-			statForSelectedDisk.Test.ThreadIsRunning  = false
+			statForSelectedDisk.Test.ThreadIsRunning = false
 
-			WaitForThreadToBeIddle(actions)
+			WaitForThreadToBeIddle(fmt.Sprintf("%s - repairSetup", disk.Name), actions)
 
 			if ddmData.PreRepair(disk).IsSucceed() {
 				res := ddmData.Repair(disk)

@@ -25,6 +25,7 @@ const (
 	UMounted
 	MountedButWrongPlace
 	NotMounted
+	AlreadyMounted
 	UUIDNotExists
 	CommandError
 	CommandSuccess
@@ -58,6 +59,14 @@ func (l LinuxCommands) IsFailed() bool {
 
 func (l LinuxCommands) IsPathExists() bool {
 	return l == PathExists
+}
+
+func (l LinuxCommands) IsAlreadyMounted() bool {
+	return l == AlreadyMounted
+}
+
+func (l LinuxCommands) IsNotMounted() bool {
+	return l == NotMounted
 }
 
 func (err LinuxCommands) IsMountOrCommandError() bool {
@@ -145,10 +154,28 @@ func (e ExecCommandsType) MkDir(diskPath string) LinuxCommands {
 	return PathCreated
 }
 
+func isAlreadyMountedError(out []byte) LinuxCommands {
+	if strings.Contains(string(out), "already mounted") {
+		log.Warnf("Disk already mounted")
+		return AlreadyMounted
+	}
+	return None
+}
+
+func isNotMountedError(out []byte) LinuxCommands {
+	if strings.Contains(string(out), "not mounted") {
+		log.Warnf("Disk not mounted")
+		return NotMounted
+	}
+	return None
+}
+
 func (e ExecCommandsType) Mount(disk config.Disk) LinuxCommands {
 	out, err := e.mount(fmt.Sprintf("sudo mount UUID=%s %s", disk.UUID, disk.Mount.Path))
 	if err != nil {
-		log.Errorf(fmt.Sprint(err) + ": " + string(out))
+		if !isAlreadyMountedError(out).IsAlreadyMounted() {
+			log.Errorf(fmt.Sprint(err) + ": " + string(out))
+		}
 		return CommandError
 	}
 	return Mounted
@@ -157,7 +184,9 @@ func (e ExecCommandsType) Mount(disk config.Disk) LinuxCommands {
 func (e ExecCommandsType) UMount(disk config.Disk) LinuxCommands {
 	out, err := e.umount(fmt.Sprintf("sudo umount -l %s", disk.Mount.Path))
 	if err != nil {
-		log.Errorf(fmt.Sprint(err) + ": " + string(out))
+		if !isNotMountedError(out).IsNotMounted() {
+			log.Errorf(fmt.Sprint(err) + ": " + string(out))
+		}
 		return CommandError
 	}
 	return UMounted

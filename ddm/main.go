@@ -51,7 +51,7 @@ func IsInActiveOrDisabled(actionName string, diskStat *observer.DiskStat, action
 	return false
 }
 
-func WaitForThreadToBeIddle(as []observer.Action) {
+func WaitForThreadToBeIddle(msg string, as []*observer.Action) {
 	for {
 		iddleList := []bool{}
 		for _, diskAs := range as {
@@ -63,12 +63,12 @@ func WaitForThreadToBeIddle(as []observer.Action) {
 		if len(iddleList) == len(as) {
 			return
 		}
-		log.Debug("WaitForThreads wait actions to be done ")
+		log.Debugf("[%s] WaitForThreads ...", msg)
 		time.Sleep(10 * time.Second)
 	}
 }
 
-func StartThreads(as []observer.Action) {
+func StartThreads(as []*observer.Action) {
 	for _, diskAs := range as {
 		diskAs.DisabledByAction = false
 		diskAs.Status = observer.Running

@@ -1,6 +1,8 @@
 package ddm
 
 import (
+	"fmt"
+
 	"github.com/alfonzso/dying-disk-manager/pkg/config"
 	"github.com/alfonzso/dying-disk-manager/pkg/linux"
 	"github.com/alfonzso/dying-disk-manager/pkg/observer"
@@ -43,7 +45,7 @@ func (ddmData *DDMData) ForceRemount(disk config.Disk, diskStat *observer.DiskSt
 
 func (ddmData *DDMData) periodCheck(disk config.Disk) (int, error) {
 	statForSelectedDisk := ddmData.GetDiskStat(disk)
-	actions := []observer.Action{statForSelectedDisk.Test}
+	actions := []*observer.Action{&statForSelectedDisk.Test}
 	statForSelectedDisk.Mount.Status = observer.Running
 
 	if IsInActiveOrDisabled("Mount", statForSelectedDisk, statForSelectedDisk.Mount) {
@@ -56,7 +58,7 @@ func (ddmData *DDMData) periodCheck(disk config.Disk) (int, error) {
 		return 0, nil
 	}
 
-	WaitForThreadToBeIddle(actions)
+	WaitForThreadToBeIddle(fmt.Sprintf("%s - periodCheck", disk.Name), actions)
 
 	if ddmData.ForceRemount(disk, statForSelectedDisk).IsFailed() {
 		log.Errorf("[%s] ReMount failed", statForSelectedDisk.Name)
