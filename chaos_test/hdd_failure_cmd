@@ -1,0 +1,3 @@
+write /dev/null file-to-clri
+clri file-to-clri
+q
