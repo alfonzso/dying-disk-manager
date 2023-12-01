@@ -23,6 +23,8 @@ const (
 	None    LinuxCommands = 0
 	Mounted LinuxCommands = 1 << iota
 	UMounted
+	CantUmounted
+	CantMounted
 	MountedButWrongPlace
 	NotMounted
 	AlreadyMounted
@@ -48,6 +50,7 @@ var DetailedLinuxType = map[LinuxCommands]string{
 var MountOrCommandError = MountedButWrongPlace | NotMounted | UUIDNotExists | CommandError
 var MountWillBeSkip = Mounted | MountedButWrongPlace | UUIDNotExists | CommandError
 var DiskUnAvailableOrUUIDNotExists = DiskUnAvailable | CommandError
+var ForceRemountError = CantMounted | CantUmounted
 
 func (l LinuxCommands) IsSucceed() bool {
 	return l == CommandSuccess
@@ -79,6 +82,10 @@ func (err LinuxCommands) IsMountWillBeSkip() bool {
 
 func (err LinuxCommands) IsDiskUnAvailableOrUUIDNotExists() bool {
 	return (err & DiskUnAvailableOrUUIDNotExists) == err
+}
+
+func (err LinuxCommands) IsForceRemountError() bool {
+	return (err & ForceRemountError) == err
 }
 
 func (l LinuxCommands) IsAvailable() bool {
@@ -154,18 +161,19 @@ func (e ExecCommandsType) MkDir(diskPath string) LinuxCommands {
 	return PathCreated
 }
 
-func isAlreadyMountedError(out []byte) LinuxCommands {
-	if strings.Contains(string(out), "already mounted") {
-		log.Warnf("Disk already mounted")
-		return AlreadyMounted
-	}
-	return None
-}
-
-func isNotMountedError(out []byte) LinuxCommands {
-	if strings.Contains(string(out), "not mounted") {
-		log.Warnf("Disk not mounted")
+func parseCommandError(name string, out []byte) LinuxCommands {
+	_out := string(out)
+	switch {
+	case strings.Contains(_out, "not mounted"):
+		log.Warnf("[%s] Disk not mounted", name)
 		return NotMounted
+	case strings.Contains(_out, "already mounted"):
+		log.Warnf("[%s] Disk already mounted", name)
+		return AlreadyMounted
+	case strings.Contains(_out, "exit status 4"):
+		log.Debugf("[%s] DryRunFsck", name)
+	case strings.Contains(_out, "exit status 1"):
+		log.Debugf("[%s] RunFsck", name)
 	}
 	return None
 }
@@ -173,9 +181,10 @@ func isNotMountedError(out []byte) LinuxCommands {
 func (e ExecCommandsType) Mount(disk config.Disk) LinuxCommands {
 	out, err := e.mount(fmt.Sprintf("sudo mount UUID=%s %s", disk.UUID, disk.Mount.Path))
 	if err != nil {
-		if !isAlreadyMountedError(out).IsAlreadyMounted() {
-			log.Errorf(fmt.Sprint(err) + ": " + string(out))
+		if parseCommandError(disk.Name, out).IsAlreadyMounted() {
+			return Mounted
 		}
+		log.Errorf(fmt.Sprint(err) + ": " + string(out))
 		return CommandError
 	}
 	return Mounted
@@ -184,9 +193,10 @@ func (e ExecCommandsType) Mount(disk config.Disk) LinuxCommands {
 func (e ExecCommandsType) UMount(disk config.Disk) LinuxCommands {
 	out, err := e.umount(fmt.Sprintf("sudo umount -l %s", disk.Mount.Path))
 	if err != nil {
-		if !isNotMountedError(out).IsNotMounted() {
-			log.Errorf(fmt.Sprint(err) + ": " + string(out))
+		if parseCommandError(disk.Name, out).IsNotMounted() {
+			return UMounted
 		}
+		log.Errorf(fmt.Sprint(err) + ": " + string(out))
 		return CommandError
 	}
 	return UMounted
@@ -213,7 +223,7 @@ func (e ExecCommandsType) WriteIntoDisk(path string) LinuxCommands {
 func (e ExecCommandsType) RunDryFsck(uuid string) LinuxCommands {
 	out, err := e.runDryFsck(fmt.Sprintf(`sudo fsck -fn /dev/disk/by-uuid/%s`, uuid))
 	if err != nil {
-		if fmt.Sprint(err) != "exit status 4" {
+		if parseCommandError(uuid, out) != None {
 			log.Errorf(fmt.Sprint(err) + ": " + string(out))
 		}
 		return CommandError
@@ -223,8 +233,10 @@ func (e ExecCommandsType) RunDryFsck(uuid string) LinuxCommands {
 
 func (e ExecCommandsType) RunFsck(uuid string) LinuxCommands {
 	out, err := e.runFsck(fmt.Sprintf(`sudo fsck -fy /dev/disk/by-uuid/%s`, uuid))
-	if err != nil && fmt.Sprint(err) != "exit status 1" {
-		log.Errorf(fmt.Sprint(err) + ": " + string(out))
+	if err != nil {
+		if parseCommandError(uuid, out) != None {
+			log.Errorf(fmt.Sprint(err) + ": " + string(out))
+		}
 		return CommandError
 	}
 	return CommandSuccess

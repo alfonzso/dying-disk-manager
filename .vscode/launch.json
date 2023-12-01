@@ -11,6 +11,8 @@
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/cmd/ddm/ddm-server.go",
+      "console": "integratedTerminal",
+      "asRoot": true,
       "args": [
         "-v",
         "-f",
@@ -65,6 +67,6 @@
     //   //   "-f",
     //   //   "${workspaceFolder}/config.yaml"
     //   // ]
-    }
+    // }
   ]
 }

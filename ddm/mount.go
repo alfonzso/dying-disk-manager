@@ -22,11 +22,12 @@ func (ddmData *DDMData) setupMountThread() {
 			}
 			log.Debugf("[%s] MOUNT -> Repair is ON", disk.Name)
 		} else if ddmData.isMountCanBeRun(disk, diskStat) {
+			actions := []*observer.Action{&diskStat.Test}
 			go ddmData.SetupCron(
 				"MOUNT",
 				ddmData.periodCheck,
 				disk,
-				// diskStat,
+				actions,
 				GetCronExpr(disk.Mount.PeriodicCheck.Cron, ddmData.Common.Mount.PeriodicCheck.Cron),
 			)
 			diskStat.Mount.ThreadIsRunning = true
@@ -35,17 +36,20 @@ func (ddmData *DDMData) setupMountThread() {
 }
 
 func (ddmData *DDMData) ForceRemount(disk config.Disk, diskStat *observer.DiskStat) linux.LinuxCommands {
-	log.Debugf("Try to umount => %s", ddmData.Exec.UMount(disk))
-	if ddmData.Exec.Mount(disk).IsFailed() {
-		log.Errorf("[%s] Mount failed", diskStat.Name)
+	// log.Debugf("[%s] Try to umount", disk.Name)
+	if ddmData.Exec.UMount(disk) != linux.UMounted {
 		return linux.CommandError
+	}
+	// log.Debugf("[%s] Try to mount", disk.Name)
+	if ddmData.Exec.Mount(disk).IsFailed() {
+		// log.Errorf("[%s] Mount failed", diskStat.Name)
+		return linux.CantMounted
 	}
 	return linux.Mounted
 }
 
-func (ddmData *DDMData) periodCheck(disk config.Disk) (int, error) {
+func (ddmData *DDMData) periodCheck(disk config.Disk, actions []*observer.Action) (int, error) {
 	statForSelectedDisk := ddmData.GetDiskStat(disk)
-	actions := []*observer.Action{&statForSelectedDisk.Test}
 	statForSelectedDisk.Mount.Status = observer.Running
 
 	if IsInActiveOrDisabled("Mount", statForSelectedDisk, statForSelectedDisk.Mount) {
@@ -60,8 +64,8 @@ func (ddmData *DDMData) periodCheck(disk config.Disk) (int, error) {
 
 	WaitForThreadToBeIddle(fmt.Sprintf("%s - periodCheck", disk.Name), actions)
 
-	if ddmData.ForceRemount(disk, statForSelectedDisk).IsFailed() {
-		log.Errorf("[%s] ReMount failed", statForSelectedDisk.Name)
+	if error := ddmData.ForceRemount(disk, statForSelectedDisk); error.IsForceRemountError() {
+		log.Errorf("[%s] ReMount failed: %s", statForSelectedDisk.Name, error)
 		statForSelectedDisk.Active = false
 		statForSelectedDisk.Repair.ThreadIsRunning = true
 	} else {
@@ -70,6 +74,7 @@ func (ddmData *DDMData) periodCheck(disk config.Disk) (int, error) {
 
 	StartThreads(actions)
 	statForSelectedDisk.Mount.Status = observer.Iddle
+	statForSelectedDisk.Mount.DisabledByAction = false
 	return 0, nil
 }
 

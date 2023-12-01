@@ -11,36 +11,40 @@ func _() {
 	_ = x[None-0]
 	_ = x[Mounted-2]
 	_ = x[UMounted-4]
-	_ = x[MountedButWrongPlace-8]
-	_ = x[NotMounted-16]
-	_ = x[AlreadyMounted-32]
-	_ = x[UUIDNotExists-64]
-	_ = x[CommandError-128]
-	_ = x[CommandSuccess-256]
-	_ = x[DiskAvailable-512]
-	_ = x[DiskUnAvailable-1024]
-	_ = x[PathCreated-2048]
-	_ = x[PathNotExists-4096]
-	_ = x[PathExists-8192]
+	_ = x[CantUmounted-8]
+	_ = x[CantMounted-16]
+	_ = x[MountedButWrongPlace-32]
+	_ = x[NotMounted-64]
+	_ = x[AlreadyMounted-128]
+	_ = x[UUIDNotExists-256]
+	_ = x[CommandError-512]
+	_ = x[CommandSuccess-1024]
+	_ = x[DiskAvailable-2048]
+	_ = x[DiskUnAvailable-4096]
+	_ = x[PathCreated-8192]
+	_ = x[PathNotExists-16384]
+	_ = x[PathExists-32768]
 }
 
-const _LinuxCommands_name = "NoneMountedUMountedMountedButWrongPlaceNotMountedAlreadyMountedUUIDNotExistsCommandErrorCommandSuccessDiskAvailableDiskUnAvailablePathCreatedPathNotExistsPathExists"
+const _LinuxCommands_name = "NoneMountedUMountedCantUmountedCantMountedMountedButWrongPlaceNotMountedAlreadyMountedUUIDNotExistsCommandErrorCommandSuccessDiskAvailableDiskUnAvailablePathCreatedPathNotExistsPathExists"
 
 var _LinuxCommands_map = map[LinuxCommands]string{
-	0:    _LinuxCommands_name[0:4],
-	2:    _LinuxCommands_name[4:11],
-	4:    _LinuxCommands_name[11:19],
-	8:    _LinuxCommands_name[19:39],
-	16:   _LinuxCommands_name[39:49],
-	32:   _LinuxCommands_name[49:63],
-	64:   _LinuxCommands_name[63:76],
-	128:  _LinuxCommands_name[76:88],
-	256:  _LinuxCommands_name[88:102],
-	512:  _LinuxCommands_name[102:115],
-	1024: _LinuxCommands_name[115:130],
-	2048: _LinuxCommands_name[130:141],
-	4096: _LinuxCommands_name[141:154],
-	8192: _LinuxCommands_name[154:164],
+	0:     _LinuxCommands_name[0:4],
+	2:     _LinuxCommands_name[4:11],
+	4:     _LinuxCommands_name[11:19],
+	8:     _LinuxCommands_name[19:31],
+	16:    _LinuxCommands_name[31:42],
+	32:    _LinuxCommands_name[42:62],
+	64:    _LinuxCommands_name[62:72],
+	128:   _LinuxCommands_name[72:86],
+	256:   _LinuxCommands_name[86:99],
+	512:   _LinuxCommands_name[99:111],
+	1024:  _LinuxCommands_name[111:125],
+	2048:  _LinuxCommands_name[125:138],
+	4096:  _LinuxCommands_name[138:153],
+	8192:  _LinuxCommands_name[153:164],
+	16384: _LinuxCommands_name[164:177],
+	32768: _LinuxCommands_name[177:187],
 }
 
 func (i LinuxCommands) String() string {

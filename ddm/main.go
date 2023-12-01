@@ -63,8 +63,8 @@ func WaitForThreadToBeIddle(msg string, as []*observer.Action) {
 		if len(iddleList) == len(as) {
 			return
 		}
-		log.Debugf("[%s] WaitForThreads ...", msg)
-		time.Sleep(10 * time.Second)
+		log.Debugf("[%s] WaitForThreads", msg)
+		time.Sleep(5 * time.Second)
 	}
 }
 
@@ -79,6 +79,7 @@ func (ddmData *DDMData) SetupCron(
 	taskName string,
 	function any,
 	disk config.Disk,
+	actions []*observer.Action,
 	// diskStat *observer.DiskStat,
 	cron string,
 ) (int, error) {
@@ -89,10 +90,12 @@ func (ddmData *DDMData) SetupCron(
 		gocron.NewTask(
 			function,
 			disk,
+			actions,
 			// diskStat,
 		),
 		gocron.WithName(taskName),
 		gocron.WithTags(disk.UUID),
+		gocron.WithSingletonMode(gocron.LimitModeReschedule),
 	)
 
 	if err != nil {
@@ -100,7 +103,7 @@ func (ddmData *DDMData) SetupCron(
 		return 1, err
 	}
 
-	log.Debugf("[%s] Cron staring with expr... %s", disk.Name, cron)
+	log.Debugf("[%s - %s] Cron expr: %s", taskName, disk.Name, cron)
 	ddmData.Scheduler.Start()
 	return 0, nil
 }
