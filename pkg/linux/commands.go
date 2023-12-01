@@ -210,7 +210,7 @@ func (e ExecCommandsType) Lsblk() ([]string, LinuxCommands) {
 }
 
 func (e ExecCommandsType) WriteIntoDisk(path string) LinuxCommands {
-	out, err := e.writeIntoDisk(fmt.Sprintf(`sudo date > %s/.tstfile`, path))
+	out, err := e.writeIntoDisk(fmt.Sprintf(`sudo date > %s/.ddmfile`, path))
 	if err != nil {
 		log.Errorf(fmt.Sprint(err) + ": " + string(out))
 		return CommandError

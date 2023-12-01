@@ -31,6 +31,22 @@ func (as ActionStatus) IsRunning() bool {
 	return as == Running
 }
 
+func (as Action) IsIddle() bool {
+	return as.Status == Iddle
+}
+
+func (as Action) IsRunning() bool {
+	return as.Status == Running
+}
+
+func (as *Action) SetToRun() {
+	as.Status = Running
+}
+
+func (as *Action) SetToIddle() {
+	as.Status = Iddle
+}
+
 func (as Action) Print() string {
 	return fmt.Sprintf("Status: %s, ThreadIsRunning: %t, DisabledByAction: %t", as.Status.String(), as.ThreadIsRunning, as.DisabledByAction)
 }

@@ -33,9 +33,11 @@ func (ddmData *DDMData) Threading() {
 		// do not run test and mount thread
 		// ++ wait for periodic is done // or scheduler stop is enough?
 		// fuck ... i have to manage this per disks .......
-		ddmData.setupTestThread()
-		ddmData.setupMountThread()
-		ddmData.setupRepairThread()
+		for _, disk := range ddmData.Disks {
+			ddmData.setupTestThread(disk)
+			ddmData.setupMountThread(disk)
+			ddmData.setupRepairThread(disk)
+		}
 		time.Sleep(10 * time.Second)
 	}
 }
@@ -45,7 +47,7 @@ func IsInActiveOrDisabled(actionName string, diskStat *observer.DiskStat, action
 		log.Warningf("[%s] %sThread => Disk deactivated => active: %t, disabledBy: %t",
 			diskStat.Name, actionName, diskStat.Active, action.DisabledByAction,
 		)
-		action.Status = observer.Iddle
+		action.SetToIddle()
 		return true
 	}
 	return false
@@ -71,7 +73,7 @@ func WaitForThreadToBeIddle(msg string, as []*observer.Action) {
 func StartThreads(as []*observer.Action) {
 	for _, diskAs := range as {
 		diskAs.DisabledByAction = false
-		diskAs.Status = observer.Running
+		diskAs.SetToRun()
 	}
 }
 

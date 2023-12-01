@@ -53,7 +53,9 @@ func printActionts(ddmd *ddm.DDMData) *bytes.Buffer {
 	for _, disk := range ddmd.DiskStat {
 		table.AddRow(disk.Name, "Mount", disk.Mount.Status, disk.Mount.ThreadIsRunning, disk.Mount.DisabledByAction)
 		table.AddRow(disk.Name, "Test", disk.Test.Status, disk.Test.ThreadIsRunning, disk.Test.DisabledByAction)
-		table.AddRow(disk.Name, "Repair", disk.Repair.Status, disk.Repair.ThreadIsRunning, disk.Repair.DisabledByAction)
+		// table.AddRow(disk.Name, "Repair", disk.Repair.Status, disk.Repair.ThreadIsRunning, disk.Repair.DisabledByAction)
+		table.AddRow(disk.Name, "Repair", disk.Repair.Status, disk.Repair.Status, disk.Repair.DisabledByAction)
+
 	}
 	table.Print()
 	return buff
