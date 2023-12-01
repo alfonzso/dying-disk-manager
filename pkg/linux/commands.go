@@ -181,11 +181,10 @@ func parseCommandError(name string, out []byte) LinuxCommands {
 func (e ExecCommandsType) Mount(disk config.Disk) LinuxCommands {
 	out, err := e.mount(fmt.Sprintf("sudo mount UUID=%s %s", disk.UUID, disk.Mount.Path))
 	if err != nil {
-		if parseCommandError(disk.Name, out).IsAlreadyMounted() {
-			return Mounted
+		if !parseCommandError(disk.Name, out).IsAlreadyMounted() {
+			log.Errorf(fmt.Sprint(err) + ": " + string(out))
+			return CommandError
 		}
-		log.Errorf(fmt.Sprint(err) + ": " + string(out))
-		return CommandError
 	}
 	return Mounted
 }
@@ -193,11 +192,10 @@ func (e ExecCommandsType) Mount(disk config.Disk) LinuxCommands {
 func (e ExecCommandsType) UMount(disk config.Disk) LinuxCommands {
 	out, err := e.umount(fmt.Sprintf("sudo umount -l %s", disk.Mount.Path))
 	if err != nil {
-		if parseCommandError(disk.Name, out).IsNotMounted() {
-			return UMounted
+		if !parseCommandError(disk.Name, out).IsNotMounted() {
+			log.Errorf(fmt.Sprint(err) + ": " + string(out))
+			return CommandError
 		}
-		log.Errorf(fmt.Sprint(err) + ": " + string(out))
-		return CommandError
 	}
 	return UMounted
 }
@@ -223,8 +221,9 @@ func (e ExecCommandsType) WriteIntoDisk(path string) LinuxCommands {
 func (e ExecCommandsType) RunDryFsck(uuid string) LinuxCommands {
 	out, err := e.runDryFsck(fmt.Sprintf(`sudo fsck -fn /dev/disk/by-uuid/%s`, uuid))
 	if err != nil {
-		if parseCommandError(uuid, out) != None {
-			log.Errorf(fmt.Sprint(err) + ": " + string(out))
+		errAsStr := fmt.Sprintf("RunDryFsck - %s", err)
+		if parseCommandError(uuid, []byte(errAsStr[:])) != None {
+			log.Errorf("%s: %s", errAsStr, string(out))
 		}
 		return CommandError
 	}
@@ -234,10 +233,11 @@ func (e ExecCommandsType) RunDryFsck(uuid string) LinuxCommands {
 func (e ExecCommandsType) RunFsck(uuid string) LinuxCommands {
 	out, err := e.runFsck(fmt.Sprintf(`sudo fsck -fy /dev/disk/by-uuid/%s`, uuid))
 	if err != nil {
-		if parseCommandError(uuid, out) != None {
-			log.Errorf(fmt.Sprint(err) + ": " + string(out))
+		errAsStr := fmt.Sprint(err)
+		if parseCommandError(uuid, []byte("RunFsck-"+errAsStr[:])) != None {
+			log.Errorf("%s: %s", errAsStr, string(out))
+			return CommandError
 		}
-		return CommandError
 	}
 	return CommandSuccess
 }
