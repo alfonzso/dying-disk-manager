@@ -68,7 +68,7 @@ func WaitForThreadToBeIddle(msg string, as []*observer.Action) {
 func StartThreads(as []*observer.Action) {
 	for _, diskAs := range as {
 		diskAs.DisabledByAction = false
-		diskAs.SetToRun()
+		diskAs.SetToStop()
 	}
 }
 

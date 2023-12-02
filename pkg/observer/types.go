@@ -13,7 +13,8 @@ type DDMObserver struct {
 type ActionStatus int
 
 const (
-	Running ActionStatus = iota
+	None    ActionStatus = 0
+	Running ActionStatus = 1 << iota
 	Iddle
 	Stopped
 )
@@ -21,6 +22,10 @@ const (
 type Action struct {
 	Status           ActionStatus
 	DisabledByAction bool
+}
+
+func (act Action) IsInitState() bool {
+	return act.Status != Iddle && act.Status != Running
 }
 
 func (act Action) IsStopped() bool {
