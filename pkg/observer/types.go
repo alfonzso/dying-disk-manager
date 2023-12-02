@@ -15,40 +15,40 @@ type ActionStatus int
 const (
 	Running ActionStatus = iota
 	Iddle
+	Stopped
 )
 
 type Action struct {
 	Status           ActionStatus
-	ThreadIsRunning  bool
 	DisabledByAction bool
 }
 
-func (as ActionStatus) IsIddle() bool {
-	return as == Iddle
+func (act Action) IsStopped() bool {
+	return act.Status == Stopped
 }
 
-func (as ActionStatus) IsRunning() bool {
-	return as == Running
+func (act Action) IsIddle() bool {
+	return act.Status == Iddle
 }
 
-func (as Action) IsIddle() bool {
-	return as.Status == Iddle
+func (act Action) IsRunning() bool {
+	return act.Status == Running
 }
 
-func (as Action) IsRunning() bool {
-	return as.Status == Running
+func (act *Action) SetToStop() {
+	act.Status = Stopped
 }
 
-func (as *Action) SetToRun() {
-	as.Status = Running
+func (act *Action) SetToRun() {
+	act.Status = Running
 }
 
-func (as *Action) SetToIddle() {
-	as.Status = Iddle
+func (act *Action) SetToIddle() {
+	act.Status = Iddle
 }
 
 func (as Action) Print() string {
-	return fmt.Sprintf("Status: %s, ThreadIsRunning: %t, DisabledByAction: %t", as.Status.String(), as.ThreadIsRunning, as.DisabledByAction)
+	return fmt.Sprintf("Status: %s, DisabledByAction: %t", as.Status.String(), as.DisabledByAction)
 }
 
 type DiskStat struct {
@@ -62,8 +62,8 @@ type DiskStat struct {
 }
 
 func (d DiskStat) IsMountAndTestActionInIddleStatus() bool {
-	return d.Mount.Status.IsIddle() &&
-		d.Test.Status.IsIddle()
+	return d.Mount.IsIddle() &&
+		d.Test.IsIddle()
 }
 
 func (d DiskStat) IsActiv() bool {
@@ -83,7 +83,4 @@ func (d DiskStat) String() string {
 	)
 	regex, _ := regexp.Compile(`\t+[|]`)
 	return regex.ReplaceAllString(msg, " ")
-
-	// return msg
-	// return strings.Replace(msg, "^\+s|", "", -1)
 }

@@ -28,11 +28,6 @@ func GetCronExpr(diskCron string, commonCron string) string {
 func (ddmData *DDMData) Threading() {
 	log.Debug("==> Threads are started")
 	for {
-		// if in repair mode
-		// then stop schedulers (threads)
-		// do not run test and mount thread
-		// ++ wait for periodic is done // or scheduler stop is enough?
-		// fuck ... i have to manage this per disks .......
 		for _, disk := range ddmData.Disks {
 			ddmData.setupTestThread(disk)
 			ddmData.setupMountThread(disk)

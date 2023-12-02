@@ -13,7 +13,14 @@ func (d *DDMObserver) GetDiskStat(disk config.Disk) *DiskStat {
 	idx := slices.IndexFunc(d.DiskStat, func(c DiskStat) bool { return c.Name == disk.Name })
 	if idx == -1 {
 		log.Debug("init getDiskStat ", disk.Name)
-		diskStat := DiskStat{Name: disk.Name, UUID: disk.UUID, Active: true, Repair: Action{Status: Iddle}}
+		diskStat := DiskStat{
+			Name:   disk.Name,
+			UUID:   disk.UUID,
+			Active: true,
+			Repair: Action{Status: Stopped},
+			Mount:  Action{Status: Stopped},
+			Test:   Action{Status: Stopped},
+		}
 		d.DiskStat = append(d.DiskStat, diskStat)
 		return &diskStat
 	}

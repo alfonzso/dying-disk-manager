@@ -9,6 +9,4 @@ func NewLogrus() {
 	customFormatter.TimestampFormat = "2006-01-02 15:04:05"
 	logrus.SetFormatter(customFormatter)
 	customFormatter.FullTimestamp = true
-	// logrus.Info("Hello Walrus before FullTimestamp=true")
-	// logrus.Info("Hello Walrus after FullTimestamp=true")
 }

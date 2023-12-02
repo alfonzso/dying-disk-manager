@@ -10,11 +10,12 @@ func _() {
 	var x [1]struct{}
 	_ = x[Running-0]
 	_ = x[Iddle-1]
+	_ = x[Stopped-2]
 }
 
-const _ActionStatus_name = "RunningIddle"
+const _ActionStatus_name = "RunningIddleStopped"
 
-var _ActionStatus_index = [...]uint8{0, 7, 12}
+var _ActionStatus_index = [...]uint8{0, 7, 12, 19}
 
 func (i ActionStatus) String() string {
 	if i < 0 || i >= ActionStatus(len(_ActionStatus_index)-1) {

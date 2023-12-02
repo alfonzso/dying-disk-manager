@@ -17,8 +17,8 @@ func (ddmData *DDMData) setupRepairThread(disk config.Disk) {
 		return
 	}
 	ddmData.Scheduler.RemoveByTags(statForSelectedDisk.UUID)
-	statForSelectedDisk.Mount.ThreadIsRunning = false
-	statForSelectedDisk.Test.ThreadIsRunning = false
+	statForSelectedDisk.Mount.SetToStop()
+	statForSelectedDisk.Test.SetToStop()
 
 	WaitForThreadToBeIddle(fmt.Sprintf("%s - repairSetup", disk.Name), actions)
 

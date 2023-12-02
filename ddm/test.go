@@ -8,7 +8,7 @@ import (
 )
 
 func (ddmData *DDMData) isTestCanBeRun(disk config.Disk, diskStat *observer.DiskStat) bool {
-	return (disk.Test.Enabled || ddmData.Common.Test.Enabled) && !diskStat.Test.ThreadIsRunning
+	return (disk.Test.Enabled || ddmData.Common.Test.Enabled) && diskStat.Test.IsStopped()
 }
 
 func (ddmData *DDMData) setupTestThread(disk config.Disk) {
@@ -16,7 +16,7 @@ func (ddmData *DDMData) setupTestThread(disk config.Disk) {
 
 	if diskStat.Repair.IsRunning() {
 		if diskStat.Test.IsRunning() {
-			diskStat.Test.SetToIddle()
+			diskStat.Test.SetToStop()
 		}
 		log.Debugf("[%s] TEST -> Repair is ON", disk.Name)
 	} else if ddmData.isTestCanBeRun(disk, diskStat) {
@@ -27,7 +27,7 @@ func (ddmData *DDMData) setupTestThread(disk config.Disk) {
 			nil,
 			GetCronExpr(disk.Test.Cron, ddmData.Common.Test.Cron),
 		)
-		diskStat.Test.ThreadIsRunning = true
+		diskStat.Test.SetToRun()
 	}
 }
 
@@ -43,14 +43,12 @@ func (ddmData *DDMData) Test(disk config.Disk, action []*observer.Action) (int, 
 	if ddmData.Exec.RunDryFsck(disk.UUID).IsFailed() {
 		log.Debugf("[%s] Fsck failed, triggering repair", disk.Name)
 		currentDiskStat.Active = false
-		// currentDiskStat.Repair.ThreadIsRunning = true
 		currentDiskStat.Repair.SetToRun()
 	}
 
 	if ddmData.Exec.WriteIntoDisk(disk.Mount.Path).IsFailed() {
 		log.Debugf("[%s] Write to disk failed, triggering repair", disk.Name)
 		currentDiskStat.Active = false
-		// currentDiskStat.Repair.ThreadIsRunning = true
 		currentDiskStat.Repair.SetToRun()
 
 	}
