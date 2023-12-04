@@ -10,27 +10,70 @@ import (
 )
 
 func (ddmData *DDMData) isMountCanBeRun(disk config.Disk, diskStat *observer.DiskStat) bool {
-	return (disk.Mount.Enabled || ddmData.Common.Mount.Enabled) && diskStat.Mount.IsStopped()
+	// return (disk.Mount.Enabled || ddmData.Common.Mount.Enabled) && diskStat.Mount.IsStopped()
+	// dbg := ddmData.CurrentActionsJobNotRunning("MOUNT", disk.Name, disk.UUID)
+	// log.Debug("MOUNT ... JobNotRunning", dbg, disk.Name, disk.UUID)
+	// return (disk.Mount.Enabled || ddmData.Common.Mount.Enabled) && dbg
+	return (disk.Mount.Enabled || ddmData.Common.Mount.Enabled)
 }
 
 func (ddmData *DDMData) setupMountThread(disk config.Disk) {
 	diskStat := ddmData.GetDiskStat(disk)
-	if diskStat.Repair.IsRunning() {
-		if diskStat.Mount.IsRunning() {
-			diskStat.Mount.SetToStop()
-		}
-		log.Debugf("[%s] MOUNT -> Repair is ON", disk.Name)
-	} else if ddmData.isMountCanBeRun(disk, diskStat) {
-		actions := []*observer.Action{&diskStat.Test}
-		go ddmData.SetupCron(
-			"MOUNT",
-			ddmData.periodCheck,
-			disk,
-			actions,
-			GetCronExpr(disk.Mount.PeriodicCheck.Cron, ddmData.Common.Mount.PeriodicCheck.Cron),
-		)
-		diskStat.Mount.SetToRun()
+	// actions := []*observer.Action{&diskStat.Test}
+
+	RepairIsOn("MOUNT", diskStat)
+
+	if !ddmData.isMountCanBeRun(disk, diskStat) {
+		return
 	}
+
+	// log.Debugf("%#v",ddmData.Scheduler.Jobs())
+	// log.Debugf(
+	// 	"%s %s %s jobNotRunning %t", "MOUNT", disk.Name, disk.UUID, ddmData.CurrentActionsJobNotRunning("MOUNT", disk.Name, disk.UUID),
+	// )
+
+	// if !ddmData.CurrentActionsJobNotRunning("MOUNT", disk.Name, disk.UUID) {
+	// 	return
+	// }
+
+	// ddmData.SetupCron(
+	// 	"MOUNT",
+	// 	ddmData.periodCheck,
+	// 	disk,
+	// 	actions,
+	// 	GetCronExpr(disk.Mount.PeriodicCheck.Cron, ddmData.Common.Mount.PeriodicCheck.Cron),
+	// )
+
+	// diskStat.Mount.SetToRun()
+	go ddmData.startMountAndWaitTillAlive(disk)
+
+}
+
+func (ddmData *DDMData) startMountAndWaitTillAlive(disk config.Disk) {
+	if ddmData.CurrentActionsJobRunning("MOUNT", disk.Name, disk.UUID) {
+		return
+	}
+
+	diskStat := ddmData.GetDiskStat(disk)
+	actions := []*observer.Action{&diskStat.Test}
+
+	ddmData.SetupCron(
+		"MOUNT",
+		ddmData.periodCheck,
+		disk,
+		actions,
+		GetCronExpr(disk.Mount.PeriodicCheck.Cron, ddmData.Common.Mount.PeriodicCheck.Cron),
+	)
+	// time.Sleep(2 * time.Second)
+	// for {
+	// 	if ddmData.CurrentActionsJobRunning("MOUNT", disk.Name, disk.UUID) {
+	// 		log.Debugf("[%s] MOUNT action alive", disk.Name)
+	// 		break
+	// 	}
+	// 	time.Sleep(1 * time.Second)
+	// }
+
+	diskStat.Mount.SetToRun()
 }
 
 func (ddmData *DDMData) ForceRemount(disk config.Disk, diskStat *observer.DiskStat) linux.LinuxCommands {

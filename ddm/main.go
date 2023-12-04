@@ -1,8 +1,10 @@
 package ddm
 
 import (
+	"slices"
 	"time"
 
+	"github.com/alfonzso/dying-disk-manager/pkg/common"
 	"github.com/alfonzso/dying-disk-manager/pkg/config"
 	"github.com/alfonzso/dying-disk-manager/pkg/linux"
 	"github.com/alfonzso/dying-disk-manager/pkg/observer"
@@ -37,6 +39,55 @@ func (ddmData *DDMData) Threading() {
 	}
 }
 
+// func (ddmData *DDMData) RepairIsOn(){
+func RepairIsOn(actionName string, diskStat *observer.DiskStat) {
+	if !diskStat.Repair.IsRunning() {
+		return
+	}
+	// if diskStat.Mount.IsRunning() {
+	// 	diskStat.Mount.SetToStop()
+	// }
+	log.Debugf("[%s] %s -> Repair is ON", diskStat.Name, actionName)
+}
+
+func (ddmData *DDMData) CurrentActionsJobNotRunning(actionName, diskName, uuid string) bool {
+	idx := slices.IndexFunc(ddmData.Scheduler.Jobs(), func(c gocron.Job) bool { return c.Name() == actionName })
+	if idx == -1 {
+		return true
+	}
+	currentJob := ddmData.Scheduler.Jobs()[idx]
+	idx = slices.IndexFunc(currentJob.Tags(), func(tag string) bool { return tag == uuid })
+	return idx == -1
+}
+
+func (ddmData *DDMData) CurrentActionsJobRunning(actionName, diskName, uuid string) bool {
+
+	// common.Map(ddmData.Scheduler.Jobs(), func(c gocron.Job, idx int) gocron.Job {
+	// 	if c.Name() == actionName {
+	// 		return c
+	// 	}
+	// 	return nil
+	// })
+
+	jobs := common.Filter(ddmData.Scheduler.Jobs(), func(c gocron.Job) bool {
+		return c.Name() == actionName && slices.Contains(c.Tags(), uuid)
+	})
+	return len(jobs) > 0
+	// jobs := common.Filter(jobs, func(c gocron.Job) bool { return c.Name() == actionName })
+
+	// idx := slices.IndexFunc(ddmData.Scheduler.Jobs(), func(c gocron.Job) bool { return c.Name() == actionName })
+	// if idx == -1 {
+	// 	return false
+	// }
+	// log.Debugf("[%s - %s] job found: %d ", diskName, uuid, idx)
+	// currentJob := ddmData.Scheduler.Jobs()[idx]
+	// idx = slices.IndexFunc(currentJob.Tags(), func(tag string) bool { return tag == uuid })
+	// if idx != -1 {
+	// 	log.Debugf("[%s - %s] job with tag found: %s ", diskName, uuid, currentJob.Tags()[idx])
+	// }
+	// return idx != -1
+}
+
 func IsInActiveOrDisabled(actionName string, diskStat *observer.DiskStat, action observer.Action) bool {
 	if diskStat.IsInActive() || action.DisabledByAction {
 		log.Warningf("[%s] %sThread => Disk deactivated => active: %t, disabledBy: %t",
@@ -68,7 +119,7 @@ func WaitForThreadToBeIddle(msg string, as []*observer.Action) {
 func StartThreads(as []*observer.Action) {
 	for _, diskAs := range as {
 		diskAs.DisabledByAction = false
-		diskAs.SetToStop()
+		// diskAs.SetToStop()
 	}
 }
 
@@ -101,7 +152,7 @@ func (ddmData *DDMData) SetupCron(
 	}
 
 	log.Debugf("[%s - %s] Cron expr: %s", taskName, disk.Name, cron)
-	ddmData.Scheduler.Start()
+	// ddmData.Scheduler.Start()
 	return 0, nil
 }
 
@@ -111,5 +162,6 @@ func New(o *observer.DDMObserver, c *config.DDMConfig) *DDMData {
 	if err != nil {
 		log.Error("Cron scheduler failed to setup")
 	}
+	s.Start()
 	return &DDMData{s, linux, o, c}
 }

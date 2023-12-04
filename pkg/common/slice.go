@@ -47,6 +47,34 @@ func GrepInList(source []string, pattern string) string {
 	return source[idx]
 }
 
+func Map[T, V any](ts []T, fn func(T, int) V) []V {
+	result := make([]V, len(ts))
+	for idx, t := range ts {
+		result[idx] = fn(t, idx)
+	}
+	return result
+}
+
+// func Filter(vs []string, f func(string) bool) []string {
+// 	vsf := make([]string, 0)
+// 	for _, v := range vs {
+// 		if f(v) {
+// 			vsf = append(vsf, v)
+// 		}
+// 	}
+// 	return vsf
+// }
+
+func Filter[T any](items []T, fn func(item T) bool) []T {
+	filteredItems := []T{}
+	for _, value := range items {
+			if fn(value) {
+					filteredItems = append(filteredItems, value)
+			}
+	}
+	return filteredItems
+}
+
 // Nomad test
 
 func Maybe(value string) *Common {
