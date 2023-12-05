@@ -58,7 +58,7 @@ func (ddmData *DDMData) periodCheck(disk config.Disk) (int, error) {
 		diskStat := ddmData.GetDiskStat(disk)
 		times := ddmData.GetJobNextRun(diskStat.Mount.Name, diskStat.UUID)
 		time.Sleep(times)
-		diskStat.Mount.HealthCheck = observer.Iddle
+		diskStat.Mount.HealthCheck = observer.None
 	}()
 	return res, err
 }
@@ -66,7 +66,7 @@ func (ddmData *DDMData) periodCheck(disk config.Disk) (int, error) {
 func (ddmData *DDMData) mountWrapper(disk config.Disk) (int, error) {
 	diskStat := ddmData.GetDiskStat(disk)
 	diskStat.Mount.SetToRun()
-	diskStat.Mount.HealthCheck = observer.Running
+	diskStat.Mount.HealthCheck = observer.OK
 
 	if IsInActiveOrDisabled(diskStat.Mount.Name, diskStat, diskStat.Mount) {
 		diskStat.Mount.SetToIddle()

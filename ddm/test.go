@@ -46,7 +46,7 @@ func (ddmData *DDMData) diskTest(disk config.Disk) (int, error) {
 		diskStat := ddmData.GetDiskStat(disk)
 		times := ddmData.GetJobNextRun(diskStat.Test.Name, diskStat.UUID)
 		time.Sleep(times)
-		diskStat.Test.HealthCheck = observer.Iddle
+		diskStat.Test.HealthCheck = observer.None
 	}()
 	return res, err
 }
@@ -54,7 +54,7 @@ func (ddmData *DDMData) diskTest(disk config.Disk) (int, error) {
 func (ddmData *DDMData) testWrapper(disk config.Disk) (int, error) {
 	diskStat := ddmData.GetDiskStat(disk)
 	diskStat.Test.SetToRun()
-	diskStat.Test.HealthCheck = observer.Running
+	diskStat.Test.HealthCheck = observer.OK
 
 	if IsInActiveOrDisabled(diskStat.Test.Name, diskStat, diskStat.Test) {
 		diskStat.Test.SetToIddle()

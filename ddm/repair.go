@@ -16,7 +16,7 @@ func (ddmData *DDMData) setupRepairThread(disk config.Disk) {
 	if !diskStat.Repair.IsRunning() {
 		return
 	}
-	diskStat.Repair.HealthCheck = observer.Running
+	diskStat.Repair.HealthCheck = observer.OK
 
 	WaitForThreadToBeIddle(fmt.Sprintf("%s - repairSetup", disk.Name), diskStat.Repair.ActionsToStop)
 
@@ -34,7 +34,7 @@ func (ddmData *DDMData) setupRepairThread(disk config.Disk) {
 	go func() {
 		time.Sleep(10 * time.Second)
 		diskStat := ddmData.GetDiskStat(disk)
-		diskStat.Repair.HealthCheck = observer.Iddle
+		diskStat.Repair.HealthCheck = observer.None
 	}()
 }
 

@@ -12,6 +12,7 @@ func _() {
 	_ = x[Running-2]
 	_ = x[Iddle-4]
 	_ = x[Stopped-8]
+	_ = x[OK-16]
 }
 
 const (
@@ -19,6 +20,7 @@ const (
 	_ActionStatus_name_1 = "Running"
 	_ActionStatus_name_2 = "Iddle"
 	_ActionStatus_name_3 = "Stopped"
+	_ActionStatus_name_4 = "OK"
 )
 
 func (i ActionStatus) String() string {
@@ -31,6 +33,8 @@ func (i ActionStatus) String() string {
 		return _ActionStatus_name_2
 	case i == 8:
 		return _ActionStatus_name_3
+	case i == 16:
+		return _ActionStatus_name_4
 	default:
 		return "ActionStatus(" + strconv.FormatInt(int64(i), 10) + ")"
 	}

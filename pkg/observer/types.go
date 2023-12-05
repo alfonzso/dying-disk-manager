@@ -17,6 +17,7 @@ const (
 	Running ActionStatus = 1 << iota
 	Iddle
 	Stopped
+	OK
 )
 
 type Action struct {
