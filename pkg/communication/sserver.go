@@ -52,13 +52,14 @@ func printDiskStat(ddmd *ddm.DDMData) *bytes.Buffer {
 }
 
 func printActionts(ddmd *ddm.DDMData) *bytes.Buffer {
-	table := table.New("DiskName", "Action", "Status", "DisabledByAction")
+	table := table.New("DiskName", "Action", "Status", "Disabled", "Health")
 	buff := new(bytes.Buffer)
 	table.WithWriter(buff)
 	for _, disk := range ddmd.DiskStat {
-		table.AddRow(disk.Name, "Mount", disk.Mount.Status, disk.Mount.DisabledByAction)
-		table.AddRow(disk.Name, "Test", disk.Test.Status, disk.Test.DisabledByAction)
-		table.AddRow(disk.Name, "Repair", disk.Repair.Status, disk.Repair.DisabledByAction)
+		table.AddRow("------", "------", "------", "------", "------")
+		table.AddRow(disk.Name, "Mount", disk.Mount.Status, disk.Mount.DisabledByAction, disk.Mount.HealthCheck)
+		table.AddRow(disk.Name, "Test", disk.Test.Status, disk.Test.DisabledByAction, disk.Test.HealthCheck)
+		table.AddRow(disk.Name, "Repair", disk.Repair.Status, disk.Repair.DisabledByAction, disk.Repair.HealthCheck)
 	}
 	table.Print()
 	return buff

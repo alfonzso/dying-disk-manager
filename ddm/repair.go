@@ -2,6 +2,7 @@ package ddm
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/alfonzso/dying-disk-manager/pkg/config"
 	"github.com/alfonzso/dying-disk-manager/pkg/linux"
@@ -10,29 +11,31 @@ import (
 )
 
 func (ddmData *DDMData) setupRepairThread(disk config.Disk) {
-	statForSelectedDisk := ddmData.GetDiskStat(disk)
-	actions := []*observer.Action{&statForSelectedDisk.Mount, &statForSelectedDisk.Test}
+	diskStat := ddmData.GetDiskStat(disk)
 
-	if !statForSelectedDisk.Repair.IsRunning() {
+	if !diskStat.Repair.IsRunning() {
 		return
 	}
-	// ddmData.Scheduler.RemoveByTags(statForSelectedDisk.UUID)
-	// statForSelectedDisk.Mount.SetToIddle()
-	// statForSelectedDisk.Test.SetToIddle()
+	diskStat.Repair.HealthCheck = observer.Running
 
-	WaitForThreadToBeIddle(fmt.Sprintf("%s - repairSetup", disk.Name), actions)
+	WaitForThreadToBeIddle(fmt.Sprintf("%s - repairSetup", disk.Name), diskStat.Repair.ActionsToStop)
 
 	if ddmData.PreRepair(disk).IsSucceed() {
 		res := ddmData.Repair(disk)
-		statForSelectedDisk.Active = true
+		diskStat.Active = true
 		if res.IsFailed() {
-			statForSelectedDisk.Active = false
+			diskStat.Active = false
 			log.Debugf("[%s] Current disk set Active to false", disk.Name)
 		}
 	}
-	StartThreads(actions)
+	StartThreads(diskStat.Repair.ActionsToStop)
 
-	statForSelectedDisk.Repair.SetToIddle()
+	diskStat.Repair.SetToIddle()
+	go func() {
+		time.Sleep(10 * time.Second)
+		diskStat := ddmData.GetDiskStat(disk)
+		diskStat.Repair.HealthCheck = observer.Iddle
+	}()
 }
 
 func (ddmData *DDMData) PreRepair(disk config.Disk) linux.LinuxCommands {

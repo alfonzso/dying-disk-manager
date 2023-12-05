@@ -39,53 +39,36 @@ func (ddmData *DDMData) Threading() {
 	}
 }
 
-// func (ddmData *DDMData) RepairIsOn(){
-func RepairIsOn(actionName string, diskStat *observer.DiskStat) {
+func RepairIsOn(actionName string, diskStat *observer.DiskStat) bool {
 	if !diskStat.Repair.IsRunning() {
-		return
+		return false
 	}
-	// if diskStat.Mount.IsRunning() {
-	// 	diskStat.Mount.SetToStop()
-	// }
 	log.Debugf("[%s] %s -> Repair is ON", diskStat.Name, actionName)
+	return true
 }
 
-func (ddmData *DDMData) CurrentActionsJobNotRunning(actionName, diskName, uuid string) bool {
-	idx := slices.IndexFunc(ddmData.Scheduler.Jobs(), func(c gocron.Job) bool { return c.Name() == actionName })
-	if idx == -1 {
-		return true
-	}
-	currentJob := ddmData.Scheduler.Jobs()[idx]
-	idx = slices.IndexFunc(currentJob.Tags(), func(tag string) bool { return tag == uuid })
-	return idx == -1
-}
-
-func (ddmData *DDMData) CurrentActionsJobRunning(actionName, diskName, uuid string) bool {
-
-	// common.Map(ddmData.Scheduler.Jobs(), func(c gocron.Job, idx int) gocron.Job {
-	// 	if c.Name() == actionName {
-	// 		return c
-	// 	}
-	// 	return nil
-	// })
-
+func (ddmData *DDMData) FindAJobByNameAndUUID(actionName, uuid string) []gocron.Job {
 	jobs := common.Filter(ddmData.Scheduler.Jobs(), func(c gocron.Job) bool {
 		return c.Name() == actionName && slices.Contains(c.Tags(), uuid)
 	})
-	return len(jobs) > 0
-	// jobs := common.Filter(jobs, func(c gocron.Job) bool { return c.Name() == actionName })
+	return jobs
+}
 
-	// idx := slices.IndexFunc(ddmData.Scheduler.Jobs(), func(c gocron.Job) bool { return c.Name() == actionName })
-	// if idx == -1 {
-	// 	return false
-	// }
-	// log.Debugf("[%s - %s] job found: %d ", diskName, uuid, idx)
-	// currentJob := ddmData.Scheduler.Jobs()[idx]
-	// idx = slices.IndexFunc(currentJob.Tags(), func(tag string) bool { return tag == uuid })
-	// if idx != -1 {
-	// 	log.Debugf("[%s - %s] job with tag found: %s ", diskName, uuid, currentJob.Tags()[idx])
-	// }
-	// return idx != -1
+func (ddmData *DDMData) ActionsJobRunning(actionName, uuid string) bool {
+	jobs := ddmData.FindAJobByNameAndUUID(actionName, uuid)
+	return len(jobs) > 0
+}
+
+func (ddmData *DDMData) GetJobNextRun(actionName, uuid string) time.Duration {
+	jobs := ddmData.FindAJobByNameAndUUID(actionName, uuid)
+	nextRuns := common.Map(jobs, func(job gocron.Job, idx int) time.Time {
+		res, _ := job.NextRun()
+		return res
+	})
+	if len(nextRuns) == 0 {
+		return (5 * time.Second)
+	}
+	return time.Until(nextRuns[0]) - (5 * time.Second)
 }
 
 func IsInActiveOrDisabled(actionName string, diskStat *observer.DiskStat, action observer.Action) bool {
@@ -119,7 +102,6 @@ func WaitForThreadToBeIddle(msg string, as []*observer.Action) {
 func StartThreads(as []*observer.Action) {
 	for _, diskAs := range as {
 		diskAs.DisabledByAction = false
-		// diskAs.SetToStop()
 	}
 }
 
@@ -127,8 +109,6 @@ func (ddmData *DDMData) SetupCron(
 	taskName string,
 	function any,
 	disk config.Disk,
-	actions []*observer.Action,
-	// diskStat *observer.DiskStat,
 	cron string,
 ) (int, error) {
 	_, err := ddmData.Scheduler.NewJob(
@@ -138,8 +118,6 @@ func (ddmData *DDMData) SetupCron(
 		gocron.NewTask(
 			function,
 			disk,
-			actions,
-			// diskStat,
 		),
 		gocron.WithName(taskName),
 		gocron.WithTags(disk.UUID),
@@ -152,7 +130,6 @@ func (ddmData *DDMData) SetupCron(
 	}
 
 	log.Debugf("[%s - %s] Cron expr: %s", taskName, disk.Name, cron)
-	// ddmData.Scheduler.Start()
 	return 0, nil
 }
 

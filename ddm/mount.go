@@ -2,6 +2,7 @@ package ddm
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/alfonzso/dying-disk-manager/pkg/config"
 	"github.com/alfonzso/dying-disk-manager/pkg/linux"
@@ -9,69 +10,34 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (ddmData *DDMData) isMountCanBeRun(disk config.Disk, diskStat *observer.DiskStat) bool {
-	// return (disk.Mount.Enabled || ddmData.Common.Mount.Enabled) && diskStat.Mount.IsStopped()
-	// dbg := ddmData.CurrentActionsJobNotRunning("MOUNT", disk.Name, disk.UUID)
-	// log.Debug("MOUNT ... JobNotRunning", dbg, disk.Name, disk.UUID)
-	// return (disk.Mount.Enabled || ddmData.Common.Mount.Enabled) && dbg
-	return (disk.Mount.Enabled || ddmData.Common.Mount.Enabled)
-}
-
 func (ddmData *DDMData) setupMountThread(disk config.Disk) {
 	diskStat := ddmData.GetDiskStat(disk)
-	// actions := []*observer.Action{&diskStat.Test}
 
-	RepairIsOn("MOUNT", diskStat)
-
-	if !ddmData.isMountCanBeRun(disk, diskStat) {
+	if RepairIsOn(diskStat.Mount.Name, diskStat) {
 		return
 	}
 
-	// log.Debugf("%#v",ddmData.Scheduler.Jobs())
-	// log.Debugf(
-	// 	"%s %s %s jobNotRunning %t", "MOUNT", disk.Name, disk.UUID, ddmData.CurrentActionsJobNotRunning("MOUNT", disk.Name, disk.UUID),
-	// )
+	if !(disk.Mount.Enabled || ddmData.Common.Mount.Enabled) {
+		return
+	}
 
-	// if !ddmData.CurrentActionsJobNotRunning("MOUNT", disk.Name, disk.UUID) {
-	// 	return
-	// }
-
-	// ddmData.SetupCron(
-	// 	"MOUNT",
-	// 	ddmData.periodCheck,
-	// 	disk,
-	// 	actions,
-	// 	GetCronExpr(disk.Mount.PeriodicCheck.Cron, ddmData.Common.Mount.PeriodicCheck.Cron),
-	// )
-
-	// diskStat.Mount.SetToRun()
 	go ddmData.startMountAndWaitTillAlive(disk)
 
 }
 
 func (ddmData *DDMData) startMountAndWaitTillAlive(disk config.Disk) {
-	if ddmData.CurrentActionsJobRunning("MOUNT", disk.Name, disk.UUID) {
+	diskStat := ddmData.GetDiskStat(disk)
+
+	if ddmData.ActionsJobRunning(diskStat.Mount.Name, disk.UUID) {
 		return
 	}
 
-	diskStat := ddmData.GetDiskStat(disk)
-	actions := []*observer.Action{&diskStat.Test}
-
 	ddmData.SetupCron(
-		"MOUNT",
+		diskStat.Mount.Name,
 		ddmData.periodCheck,
 		disk,
-		actions,
 		GetCronExpr(disk.Mount.PeriodicCheck.Cron, ddmData.Common.Mount.PeriodicCheck.Cron),
 	)
-	// time.Sleep(2 * time.Second)
-	// for {
-	// 	if ddmData.CurrentActionsJobRunning("MOUNT", disk.Name, disk.UUID) {
-	// 		log.Debugf("[%s] MOUNT action alive", disk.Name)
-	// 		break
-	// 	}
-	// 	time.Sleep(1 * time.Second)
-	// }
 
 	diskStat.Mount.SetToRun()
 }
@@ -86,33 +52,45 @@ func (ddmData *DDMData) ForceRemount(disk config.Disk, diskStat *observer.DiskSt
 	return linux.Mounted
 }
 
-func (ddmData *DDMData) periodCheck(disk config.Disk, actions []*observer.Action) (int, error) {
-	statForSelectedDisk := ddmData.GetDiskStat(disk)
-	statForSelectedDisk.Mount.SetToRun()
+func (ddmData *DDMData) periodCheck(disk config.Disk) (int, error) {
+	res, err := ddmData.mountWrapper(disk)
+	go func() {
+		diskStat := ddmData.GetDiskStat(disk)
+		times := ddmData.GetJobNextRun(diskStat.Mount.Name, diskStat.UUID)
+		time.Sleep(times)
+		diskStat.Mount.HealthCheck = observer.Iddle
+	}()
+	return res, err
+}
 
-	if IsInActiveOrDisabled("Mount", statForSelectedDisk, statForSelectedDisk.Mount) {
-		statForSelectedDisk.Mount.SetToIddle()
+func (ddmData *DDMData) mountWrapper(disk config.Disk) (int, error) {
+	diskStat := ddmData.GetDiskStat(disk)
+	diskStat.Mount.SetToRun()
+	diskStat.Mount.HealthCheck = observer.Running
+
+	if IsInActiveOrDisabled(diskStat.Mount.Name, diskStat, diskStat.Mount) {
+		diskStat.Mount.SetToIddle()
 		return 0, nil
 	}
 
-	if !ddmData.Exec.CheckMountStatus(statForSelectedDisk.UUID, disk.Mount.Path).IsMountOrCommandError() {
-		statForSelectedDisk.Mount.SetToIddle()
+	if !ddmData.Exec.CheckMountStatus(diskStat.UUID, disk.Mount.Path).IsMountOrCommandError() {
+		diskStat.Mount.SetToIddle()
 		return 0, nil
 	}
 
-	WaitForThreadToBeIddle(fmt.Sprintf("%s - periodCheck", disk.Name), actions)
+	WaitForThreadToBeIddle(fmt.Sprintf("%s - periodCheck", disk.Name), diskStat.Mount.ActionsToStop)
 
-	if error := ddmData.ForceRemount(disk, statForSelectedDisk); error.IsForceRemountError() {
-		log.Errorf("[%s] ReMount failed: %s", statForSelectedDisk.Name, error)
-		statForSelectedDisk.Active = false
-		statForSelectedDisk.Repair.SetToRun()
+	if error := ddmData.ForceRemount(disk, diskStat); error.IsForceRemountError() {
+		log.Errorf("[%s] ReMount failed: %s", diskStat.Name, error)
+		diskStat.Active = false
+		diskStat.Repair.SetToRun()
 	} else {
-		log.Debugf("[%s] ReMount success", statForSelectedDisk.Name)
+		log.Debugf("[%s] ReMount success", diskStat.Name)
 	}
 
-	StartThreads(actions)
-	statForSelectedDisk.Mount.SetToIddle()
-	statForSelectedDisk.Mount.DisabledByAction = false
+	StartThreads(diskStat.Mount.ActionsToStop)
+	diskStat.Mount.SetToIddle()
+	diskStat.Mount.DisabledByAction = false
 	return 0, nil
 }
 

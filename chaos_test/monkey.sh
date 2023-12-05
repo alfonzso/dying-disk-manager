@@ -9,6 +9,13 @@ function ddm_kill_hdd_nicely(){
   done
 }
 
+function ddm_umount(){
+  echo "$(date +"%Y-%m-%d--%H-%M-%S") -> with_rand_ddm_umount"
+  for device in $disks; do
+        sudo umount /dev/disk/by-uuid/$device -l || true
+  done
+}
+
 function with_rand_ddm_kill_hdd_nicely(){
   echo "$(date +"%Y-%m-%d--%H-%M-%S") -> with_rand_ddm_kill_hdd_nicely"
   item_count=$((0 + $RANDOM % 3))
@@ -36,6 +43,7 @@ function with_rand_ddm_umount(){
 }
 
 # ddm_kill_hdd_nicely
+# ddm_umount
 
 while :
 do

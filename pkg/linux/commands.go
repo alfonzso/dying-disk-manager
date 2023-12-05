@@ -130,7 +130,7 @@ func (e ExecCommandsType) CheckDiskAvailability(uuid string) LinuxCommands {
 		log.Errorf(fmt.Sprint(err) + ": " + string(out))
 		return CommandError
 	}
-	output := regexp.MustCompile(`[\n\t]`).ReplaceAllString(string(out[:]), "")
+	output := regexp.MustCompile(`[\n\t]`).ReplaceAllString(string(out[:]), " ")
 	if slices.Contains(strings.Split(output, " "), uuid) {
 		return DiskAvailable
 	}

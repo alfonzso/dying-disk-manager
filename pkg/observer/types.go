@@ -6,7 +6,7 @@ import (
 )
 
 type DDMObserver struct {
-	DiskStat []DiskStat
+	DiskStat []*DiskStat
 }
 
 //go:generate stringer -type=ActionStatus
@@ -20,8 +20,11 @@ const (
 )
 
 type Action struct {
+	Name             string
 	Status           ActionStatus
 	DisabledByAction bool
+	ActionsToStop    []*Action
+	HealthCheck      ActionStatus
 }
 
 func (act Action) IsInitState() bool {
