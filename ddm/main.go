@@ -9,11 +9,21 @@ import (
 	"github.com/alfonzso/dying-disk-manager/pkg/linux"
 	"github.com/alfonzso/dying-disk-manager/pkg/observer"
 	"github.com/go-co-op/gocron/v2"
+	"github.com/robfig/cron/v3"
 	log "github.com/sirupsen/logrus"
 )
 
+// type CronAction struct {
+// 	Mount string
+// 	Test  string
+// }
+// type DDMScheduler struct {
+// 	gocron.Scheduler
+// 	CronAction
+// }
 type DDMData struct {
 	Scheduler gocron.Scheduler
+	// *DDMScheduler
 	*linux.Linux
 	*observer.DDMObserver
 	*config.DDMConfig
@@ -25,6 +35,28 @@ func GetCronExpr(diskCron string, commonCron string) string {
 		cron = commonCron
 	}
 	return cron
+}
+
+func (ddmData *DDMData) GetDiskStat(disk config.Disk) *observer.DiskStat {
+	idx := slices.IndexFunc(ddmData.DiskStat, func(c *observer.DiskStat) bool { return c.Name == disk.Name })
+	if idx == -1 {
+		log.Debug("init getDiskStat ", disk.Name)
+		mount := GetCronExpr(disk.Mount.PeriodicCheck.Cron, ddmData.Common.Mount.PeriodicCheck.Cron)
+		test := GetCronExpr(disk.Test.Cron, ddmData.Common.Test.Cron)
+		diskStat := observer.DiskStat{
+			Name:   disk.Name,
+			UUID:   disk.UUID,
+			Active: true,
+			Repair: observer.Action{Name: "REPAIR", Status: observer.Stopped},
+			Mount:  observer.Action{Name: "MOUNT", Status: observer.Stopped, Cron: mount},
+			Test:   observer.Action{Name: "TEST", Status: observer.Stopped, Cron: test},
+		}
+		diskStat.Mount.ActionsToStop = []*observer.Action{&diskStat.Test}
+		diskStat.Repair.ActionsToStop = []*observer.Action{&diskStat.Mount, &diskStat.Test}
+		ddmData.DiskStat = append(ddmData.DiskStat, &diskStat)
+		return &diskStat
+	}
+	return ddmData.DiskStat[idx]
 }
 
 func (ddmData *DDMData) Threading() {
@@ -54,8 +86,24 @@ func (ddmData *DDMData) FindAJobByNameAndUUID(actionName, uuid string) []gocron.
 	return jobs
 }
 
-func (ddmData *DDMData) ActionsJobRunning(actionName, uuid string) bool {
+func (ddmData *DDMData) ActionsJobRunning(actionName, uuid, cronExpr string) bool {
 	jobs := ddmData.FindAJobByNameAndUUID(actionName, uuid)
+
+	cronSchedule, _ := cron.ParseStandard(cronExpr)
+	for _, v := range jobs {
+		next, err := v.NextRun()
+		if err != nil {
+			continue
+		}
+
+		nextEpoh := next.Unix()
+		trueNextEpoh := cronSchedule.Next(time.Now()).Unix() - int64((5 * time.Minute).Seconds())
+
+		if nextEpoh < trueNextEpoh {
+			log.Warnf("jobEpoch: %d, parsedEpoch: %d", nextEpoh, trueNextEpoh)
+			ddmData.Scheduler.RemoveByTags(uuid)
+		}
+	}
 	return len(jobs) > 0
 }
 
@@ -141,4 +189,9 @@ func New(o *observer.DDMObserver, c *config.DDMConfig) *DDMData {
 	}
 	s.Start()
 	return &DDMData{s, linux, o, c}
+	// // GetCronExpr(disk.Mount.PeriodicCheck.Cron, ddmData.Common.Mount.PeriodicCheck.Cron)
+	// mount := c.Common.Mount.PeriodicCheck.Cron
+	// test := c.Common.Test.Cron
+	// return &DDMData{&DDMScheduler{Scheduler: s,CronAction: struct{  mount; Test: test}}, linux, o, c}
+	// // return &DDMData{&DDMScheduler{Scheduler: s, CronAction: CronAction{mount, test}}, linux, o, c}
 }

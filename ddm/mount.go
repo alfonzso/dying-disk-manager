@@ -28,7 +28,7 @@ func (ddmData *DDMData) setupMountThread(disk config.Disk) {
 func (ddmData *DDMData) startMountAndWaitTillAlive(disk config.Disk) {
 	diskStat := ddmData.GetDiskStat(disk)
 
-	if ddmData.ActionsJobRunning(diskStat.Mount.Name, disk.UUID) {
+	if ddmData.ActionsJobRunning(diskStat.Mount.Name, diskStat.UUID, diskStat.Mount.Cron) {
 		return
 	}
 
@@ -36,7 +36,7 @@ func (ddmData *DDMData) startMountAndWaitTillAlive(disk config.Disk) {
 		diskStat.Mount.Name,
 		ddmData.periodCheck,
 		disk,
-		GetCronExpr(disk.Mount.PeriodicCheck.Cron, ddmData.Common.Mount.PeriodicCheck.Cron),
+		diskStat.Mount.Cron,
 	)
 
 	diskStat.Mount.SetToRun()

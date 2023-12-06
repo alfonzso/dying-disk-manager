@@ -26,7 +26,7 @@ func (ddmData *DDMData) setupTestThread(disk config.Disk) {
 func (ddmData *DDMData) startTestAndWaitTillAlive(disk config.Disk) {
 	diskStat := ddmData.GetDiskStat(disk)
 
-	if ddmData.ActionsJobRunning(diskStat.Test.Name, disk.UUID) {
+	if ddmData.ActionsJobRunning(diskStat.Test.Name, diskStat.UUID, diskStat.Test.Cron) {
 		return
 	}
 
@@ -34,7 +34,7 @@ func (ddmData *DDMData) startTestAndWaitTillAlive(disk config.Disk) {
 		diskStat.Test.Name,
 		ddmData.diskTest,
 		disk,
-		GetCronExpr(disk.Test.Cron, ddmData.Common.Test.Cron),
+		diskStat.Test.Cron,
 	)
 
 	diskStat.Test.SetToRun()

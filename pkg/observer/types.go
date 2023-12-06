@@ -22,6 +22,7 @@ const (
 
 type Action struct {
 	Name             string
+	Cron             string
 	Status           ActionStatus
 	DisabledByAction bool
 	ActionsToStop    []*Action
