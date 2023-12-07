@@ -97,8 +97,6 @@ func (l LinuxCommands) IsUnAvailable() bool {
 }
 
 type ExecCommandsType struct {
-	// GrepInList              func([]string, string) string
-	// LsblkCMD                func() ([]string, LinuxCommands)
 	checkDiskAvailability   func(string) ([]byte, error)
 	checkMountPathExistence func(string) ([]byte, error)
 	mkDir                   func(string) ([]byte, error)
@@ -123,8 +121,6 @@ func NewExecCommand() *ExecCommandsType {
 		runDryFsck:              basicCmd,
 		runFsck:                 basicCmd,
 	}
-	// execC.LsblkCMD = execC.Lsblk
-	// execC.GrepInList = common.GrepInList
 	return execC
 }
 
@@ -134,7 +130,7 @@ func (e ExecCommandsType) CheckDiskAvailability(uuid string) LinuxCommands {
 		log.Errorf(fmt.Sprint(err) + ": " + string(out))
 		return CommandError
 	}
-	output := regexp.MustCompile(`[\n\t]`).ReplaceAllString(string(out[:]), "")
+	output := regexp.MustCompile(`[\n\t]`).ReplaceAllString(string(out[:]), " ")
 	if slices.Contains(strings.Split(output, " "), uuid) {
 		return DiskAvailable
 	}
@@ -210,7 +206,7 @@ func (e ExecCommandsType) Lsblk() ([]string, LinuxCommands) {
 }
 
 func (e ExecCommandsType) WriteIntoDisk(path string) LinuxCommands {
-	out, err := e.writeIntoDisk(fmt.Sprintf(`sudo date > %s/.tstfile`, path))
+	out, err := e.writeIntoDisk(fmt.Sprintf(`sudo date > %s/.ddmfile`, path))
 	if err != nil {
 		log.Errorf(fmt.Sprint(err) + ": " + string(out))
 		return CommandError
@@ -242,20 +238,34 @@ func (e ExecCommandsType) RunFsck(uuid string) LinuxCommands {
 	return CommandSuccess
 }
 
-func (e ExecCommandsType) CheckMountStatus(uuid, path string) LinuxCommands {
+func (e ExecCommandsType) GetDiskByUUIDWithError(uuid string) (string, LinuxCommands) {
 	lsblkOut, err := e.Lsblk()
 	if err.IsFailed() {
-		return err
+		return "", err
 	}
 
 	lsblkFiltered := common.GrepInList(lsblkOut, uuid)
 	if lsblkFiltered == "" {
-		return UUIDNotExists
+		return "", UUIDNotExists
+	}
+	return lsblkFiltered, CommandSuccess
+}
+
+func (e ExecCommandsType) GetDiskByUUID(uuid string) string {
+	lsblkFiltered, _ := e.GetDiskByUUIDWithError(uuid)
+	return lsblkFiltered
+}
+
+func (e ExecCommandsType) CheckMountStatus(uuid, path string) LinuxCommands {
+	lsblkFiltered, err := e.GetDiskByUUIDWithError(uuid)
+	if err != CommandSuccess {
+		return err
 	}
 
 	expectedUuidPath := []string{uuid, path}
 	expectedNotMountedUuidPath := []string{uuid}
-	resultUuidPath := common.DeleteEmpty(common.Split(lsblkFiltered, `\s+`))
+	// resultUuidPath := common.DeleteEmpty(common.Split(lsblkFiltered, `\s+`))
+	resultUuidPath := common.Maybe(lsblkFiltered).Split(`\s+`).DeleteEmpty("").GetList()
 
 	if common.IsEquals[string](expectedNotMountedUuidPath, resultUuidPath) {
 		return NotMounted

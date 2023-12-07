@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/alfonzso/dying-disk-manager/ddm"
+	"github.com/alfonzso/dying-disk-manager/pkg/common"
 	"github.com/rodaine/table"
 	log "github.com/sirupsen/logrus"
 )
@@ -35,25 +36,30 @@ func handleConnection(listener net.Listener, ddmd *ddm.DDMData) {
 	}
 }
 
+func getMountedOn(f func(uuid string) string, uuid string) string {
+	return common.Maybe(f(uuid)).Split(`\s+`).DeleteEmpty(uuid).ToStr().GetStr()
+}
+
 func printDiskStat(ddmd *ddm.DDMData) *bytes.Buffer {
-	table := table.New("UUID", "Name", "Active")
+	table := table.New("UUID", "Name", "Active", "MountedOn")
 	buff := new(bytes.Buffer)
 	table.WithWriter(buff)
 	for _, disk := range ddmd.DiskStat {
-		table.AddRow(disk.UUID, disk.Name, disk.Active)
+		table.AddRow(disk.UUID, disk.Name, disk.Active, getMountedOn(ddmd.Exec.GetDiskByUUID, disk.UUID))
 	}
 	table.Print()
 	return buff
 }
 
 func printActionts(ddmd *ddm.DDMData) *bytes.Buffer {
-	table := table.New("DiskName", "Action", "Status", "ThreadIsRunning", "DisabledByAction")
+	table := table.New("DiskName", "Action", "Status", "Disabled", "Health")
 	buff := new(bytes.Buffer)
 	table.WithWriter(buff)
 	for _, disk := range ddmd.DiskStat {
-		table.AddRow(disk.Name, "Mount", disk.Mount.Status, disk.Mount.ThreadIsRunning, disk.Mount.DisabledByAction)
-		table.AddRow(disk.Name, "Test", disk.Test.Status, disk.Test.ThreadIsRunning, disk.Test.DisabledByAction)
-		table.AddRow(disk.Name, "Repair", disk.Repair.Status, disk.Repair.ThreadIsRunning, disk.Repair.DisabledByAction)
+		table.AddRow("------", "------", "------", "------", "------")
+		table.AddRow(disk.Name, "Mount", disk.Mount.Status, disk.Mount.DisabledByAction, disk.Mount.HealthCheck)
+		table.AddRow(disk.Name, "Test", disk.Test.Status, disk.Test.DisabledByAction, disk.Test.HealthCheck)
+		table.AddRow(disk.Name, "Repair", disk.Repair.Status, disk.Repair.DisabledByAction, disk.Repair.HealthCheck)
 	}
 	table.Print()
 	return buff

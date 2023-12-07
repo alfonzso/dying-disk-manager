@@ -2,6 +2,7 @@ package ddm
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/alfonzso/dying-disk-manager/pkg/config"
 	"github.com/alfonzso/dying-disk-manager/pkg/linux"
@@ -9,34 +10,32 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (ddmData *DDMData) setupRepairThread() {
-	for _, disk := range ddmData.Disks {
-		statForSelectedDisk := ddmData.GetDiskStat(disk)
-		statForSelectedDisk.Repair.Status = observer.Iddle
-		actions := []*observer.Action{&statForSelectedDisk.Mount, &statForSelectedDisk.Test}
+func (ddmData *DDMData) setupRepairThread(disk config.Disk) {
+	diskStat := ddmData.GetDiskStat(disk)
 
-		if statForSelectedDisk.Repair.ThreadIsRunning {
-			statForSelectedDisk.Repair.Status = observer.Running
-			ddmData.Scheduler.RemoveByTags(statForSelectedDisk.UUID)
-			statForSelectedDisk.Mount.ThreadIsRunning = false
-			statForSelectedDisk.Test.ThreadIsRunning = false
+	if !diskStat.Repair.IsRunning() {
+		return
+	}
+	diskStat.Repair.HealthCheck = observer.OK
 
-			WaitForThreadToBeIddle(fmt.Sprintf("%s - repairSetup", disk.Name), actions)
+	WaitForThreadToBeIddle(fmt.Sprintf("%s - repairSetup", disk.Name), diskStat.Repair.ActionsToStop)
 
-			if ddmData.PreRepair(disk).IsSucceed() {
-				res := ddmData.Repair(disk)
-				statForSelectedDisk.Active = true
-				if res.IsFailed() {
-					statForSelectedDisk.Active = false
-					log.Debugf("[%s] Current disk set Active to false", disk.Name)
-				}
-			}
-			StartThreads(actions)
-
-			statForSelectedDisk.Repair.ThreadIsRunning = false
-			statForSelectedDisk.Repair.Status = observer.Iddle
+	if ddmData.PreRepair(disk).IsSucceed() {
+		res := ddmData.Repair(disk)
+		diskStat.Active = true
+		if res.IsFailed() {
+			diskStat.Active = false
+			log.Debugf("[%s] Current disk set Active to false", disk.Name)
 		}
 	}
+	StartThreads(diskStat.Repair.ActionsToStop)
+
+	diskStat.Repair.SetToIddle()
+	go func() {
+		time.Sleep(10 * time.Second)
+		diskStat := ddmData.GetDiskStat(disk)
+		diskStat.Repair.HealthCheck = observer.None
+	}()
 }
 
 func (ddmData *DDMData) PreRepair(disk config.Disk) linux.LinuxCommands {
