@@ -3,3 +3,4 @@ vendor
 .tmp
 dist/
 cmd/tst/tst.go
+cli
