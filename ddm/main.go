@@ -13,20 +13,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// type CronAction struct {
-// 	Mount string
-// 	Test  string
-// }
-// type DDMScheduler struct {
-// 	gocron.Scheduler
-// 	CronAction
-// }
 type DDMData struct {
 	Scheduler gocron.Scheduler
-	// *DDMScheduler
 	*linux.Linux
 	*observer.DDMObserver
 	*config.DDMConfig
+}
+
+type DiskData struct {
+	*observer.DiskStat
+	conf *config.Disk
+}
+
+func NewDiskData(diskStat *observer.DiskStat, diskConfig config.Disk) *DiskData {
+	return &DiskData{diskStat, &diskConfig}
 }
 
 func GetCronExpr(diskCron string, commonCron string) string {
@@ -63,19 +63,20 @@ func (ddmData *DDMData) Threading() {
 	log.Debug("==> Threads are started")
 	for {
 		for _, disk := range ddmData.Disks {
-			ddmData.setupTestThread(disk)
-			ddmData.setupMountThread(disk)
-			ddmData.setupRepairThread(disk)
+			diskData := NewDiskData(ddmData.GetDiskStat(disk), disk)
+			ddmData.setupTestThread(diskData)
+			ddmData.setupMountThread(diskData)
+			ddmData.setupRepairThread(diskData)
 		}
 		time.Sleep(10 * time.Second)
 	}
 }
 
-func RepairIsOn(actionName string, diskStat *observer.DiskStat) bool {
-	if !diskStat.Repair.IsRunning() {
+func RepairIsOn(actionName string, diskData *DiskData) bool {
+	if !diskData.Repair.IsRunning() {
 		return false
 	}
-	log.Debugf("[%s] %s -> Repair is ON", diskStat.Name, actionName)
+	log.Debugf("[%s] %s -> Repair is ON", diskData.Name, actionName)
 	return true
 }
 
@@ -119,10 +120,10 @@ func (ddmData *DDMData) GetJobNextRun(actionName, uuid string) time.Duration {
 	return time.Until(nextRuns[0]) - (5 * time.Second)
 }
 
-func IsInActiveOrDisabled(actionName string, diskStat *observer.DiskStat, action observer.Action) bool {
-	if diskStat.IsInActive() || action.DisabledByAction {
+func IsInActiveOrDisabled(actionName string, diskData *DiskData, action observer.Action) bool {
+	if diskData.IsInActive() || action.DisabledByAction {
 		log.Warningf("[%s] %sThread => Disk deactivated => active: %t, disabledBy: %t",
-			diskStat.Name, actionName, diskStat.Active, action.DisabledByAction,
+			diskData.Name, actionName, diskData.Active, action.DisabledByAction,
 		)
 		action.SetToIddle()
 		return true
@@ -156,28 +157,28 @@ func StartThreads(as []*observer.Action) {
 func (ddmData *DDMData) SetupCron(
 	taskName string,
 	function any,
-	disk config.Disk,
-	cron string,
+	diskData *DiskData,
+	cronExpr string,
 ) (int, error) {
 	_, err := ddmData.Scheduler.NewJob(
 		gocron.CronJob(
-			cron, false,
+			cronExpr, false,
 		),
 		gocron.NewTask(
 			function,
-			disk,
+			diskData,
 		),
 		gocron.WithName(taskName),
-		gocron.WithTags(disk.UUID),
+		gocron.WithTags(diskData.UUID),
 		gocron.WithSingletonMode(gocron.LimitModeReschedule),
 	)
 
 	if err != nil {
-		log.Errorf("[%s] Cron job failed =>\n%v\n", disk.Name, err)
+		log.Errorf("[%s] Cron job failed =>\n%v\n", diskData.Name, err)
 		return 1, err
 	}
 
-	log.Debugf("[%s - %s] Cron expr: %s", taskName, disk.Name, cron)
+	log.Debugf("[%s - %s] Cron expr: %s", taskName, diskData.Name, cronExpr)
 	return 0, nil
 }
 

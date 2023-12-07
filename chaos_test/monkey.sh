@@ -43,7 +43,8 @@ function with_rand_ddm_umount(){
 }
 
 # ddm_kill_hdd_nicely
-# ddm_umount
+# # ddm_umount
+# exit 0
 
 while :
 do

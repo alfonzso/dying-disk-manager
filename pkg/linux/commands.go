@@ -72,6 +72,10 @@ func (l LinuxCommands) IsNotMounted() bool {
 	return l == NotMounted
 }
 
+func (l LinuxCommands) IsMounted() bool {
+	return l == Mounted
+}
+
 func (err LinuxCommands) IsMountOrCommandError() bool {
 	return (err & MountOrCommandError) == err
 }
@@ -264,7 +268,6 @@ func (e ExecCommandsType) CheckMountStatus(uuid, path string) LinuxCommands {
 
 	expectedUuidPath := []string{uuid, path}
 	expectedNotMountedUuidPath := []string{uuid}
-	// resultUuidPath := common.DeleteEmpty(common.Split(lsblkFiltered, `\s+`))
 	resultUuidPath := common.Maybe(lsblkFiltered).Split(`\s+`).DeleteEmpty("").GetList()
 
 	if common.IsEquals[string](expectedNotMountedUuidPath, resultUuidPath) {

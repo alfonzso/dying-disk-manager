@@ -3,77 +3,71 @@ package ddm
 import (
 	"time"
 
-	"github.com/alfonzso/dying-disk-manager/pkg/config"
 	"github.com/alfonzso/dying-disk-manager/pkg/observer"
 
 	log "github.com/sirupsen/logrus"
 )
 
-func (ddmData *DDMData) setupTestThread(disk config.Disk) {
-	diskStat := ddmData.GetDiskStat(disk)
-
-	if RepairIsOn(diskStat.Test.Name, diskStat) {
+func (ddmData *DDMData) setupTestThread(diskData *DiskData) {
+	if RepairIsOn(diskData.Test.Name, diskData) {
 		return
 	}
 
-	if !(disk.Test.Enabled || ddmData.Common.Test.Enabled) {
+	if !(diskData.conf.Test.Enabled || ddmData.Common.Test.Enabled) {
 		return
 	}
 
-	go ddmData.startTestAndWaitTillAlive(disk)
+	go ddmData.startTestAndWaitTillAlive(diskData)
 }
 
-func (ddmData *DDMData) startTestAndWaitTillAlive(disk config.Disk) {
-	diskStat := ddmData.GetDiskStat(disk)
-
-	if ddmData.ActionsJobRunning(diskStat.Test.Name, diskStat.UUID, diskStat.Test.Cron) {
+func (ddmData *DDMData) startTestAndWaitTillAlive(diskData *DiskData) {
+	if ddmData.ActionsJobRunning(diskData.Test.Name, diskData.UUID, diskData.Test.Cron) {
 		return
 	}
 
 	ddmData.SetupCron(
-		diskStat.Test.Name,
+		diskData.Test.Name,
 		ddmData.diskTest,
-		disk,
-		diskStat.Test.Cron,
+		diskData,
+		diskData.Test.Cron,
 	)
 
-	diskStat.Test.SetToRun()
+	diskData.Test.SetToRun()
 }
 
-func (ddmData *DDMData) diskTest(disk config.Disk) (int, error) {
-	res, err := ddmData.testWrapper(disk)
+func (ddmData *DDMData) diskTest(diskData *DiskData) (int, error) {
+	res, err := ddmData.testWrapper(diskData)
 	go func() {
-		diskStat := ddmData.GetDiskStat(disk)
-		times := ddmData.GetJobNextRun(diskStat.Test.Name, diskStat.UUID)
+		times := ddmData.GetJobNextRun(diskData.Test.Name, diskData.UUID)
 		time.Sleep(times)
-		diskStat.Test.HealthCheck = observer.None
+		diskData.Test.HealthCheck = observer.None
 	}()
 	return res, err
 }
 
-func (ddmData *DDMData) testWrapper(disk config.Disk) (int, error) {
-	diskStat := ddmData.GetDiskStat(disk)
-	diskStat.Test.SetToRun()
-	diskStat.Test.HealthCheck = observer.OK
+func (ddmData *DDMData) testWrapper(diskData *DiskData) (int, error) {
+	diskData.Test.SetToRun()
+	diskData.Test.HealthCheck = observer.OK
 
-	if IsInActiveOrDisabled(diskStat.Test.Name, diskStat, diskStat.Test) {
-		diskStat.Test.SetToIddle()
+	if IsInActiveOrDisabled(diskData.Test.Name, diskData, diskData.Test) {
+		diskData.Test.SetToIddle()
 		return 0, nil
 	}
 
-	if ddmData.Exec.RunDryFsck(disk.UUID).IsFailed() {
-		log.Debugf("[%s] Fsck failed, triggering repair", disk.Name)
-		diskStat.Active = false
-		diskStat.Repair.SetToRun()
+	if ddmData.Exec.RunDryFsck(diskData.UUID).IsFailed() {
+		log.Debugf("[%s] Fsck failed, triggering repair", diskData.Name)
+		diskData.Active = false
+		diskData.Repair.SetToRun()
 	}
 
-	if ddmData.Exec.WriteIntoDisk(disk.Mount.Path).IsFailed() {
-		log.Debugf("[%s] Write to disk failed, triggering repair", disk.Name)
-		diskStat.Active = false
-		diskStat.Repair.SetToRun()
-
+	if ddmData.Exec.CheckMountStatus(diskData.UUID, diskData.conf.Mount.Path).IsMounted() {
+		if ddmData.Exec.WriteIntoDisk(diskData.conf.Mount.Path).IsFailed() {
+			log.Debugf("[%s] Write to disk failed, triggering repair", diskData.Name)
+			diskData.Active = false
+			diskData.Repair.SetToRun()
+		}
 	}
 
-	diskStat.Test.SetToIddle()
+	diskData.Test.SetToIddle()
 	return 0, nil
 }
