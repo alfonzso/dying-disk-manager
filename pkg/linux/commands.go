@@ -101,31 +101,42 @@ func (l LinuxCommands) IsUnAvailable() bool {
 }
 
 type ExecCommandsType struct {
-	checkDiskAvailability   func(string) ([]byte, error)
-	checkMountPathExistence func(string) ([]byte, error)
-	mkDir                   func(string) ([]byte, error)
-	mount                   func(string) ([]byte, error)
-	umount                  func(string) ([]byte, error)
-	lsblk                   func(string) ([]byte, error)
-	writeIntoDisk           func(string) ([]byte, error)
-	runDryFsck              func(string) ([]byte, error)
-	runFsck                 func(string) ([]byte, error)
+	checkDiskAvailability    func(string) ([]byte, error)
+	checkMountPathExistence  func(string) ([]byte, error)
+	mkDir                    func(string) ([]byte, error)
+	mount                    func(string) ([]byte, error)
+	umount                   func(string) ([]byte, error)
+	lsblk                    func(string) ([]byte, error)
+	writeIntoDisk            func(string) ([]byte, error)
+	runDryFsck               func(string) ([]byte, error)
+	runFsck                  func(string) ([]byte, error)
+	checkCommandAvailability func(string) ([]byte, error)
 }
 
 func NewExecCommand() *ExecCommandsType {
-	basicCmd := func(command string) ([]byte, error) { return exec.Command("/bin/sh", "-c", command).CombinedOutput() }
+	baseCmd := func(command string) ([]byte, error) { return exec.Command("/bin/sh", "-c", command).CombinedOutput() }
 	execC := &ExecCommandsType{
-		checkDiskAvailability:   basicCmd,
-		checkMountPathExistence: basicCmd,
-		mkDir:                   basicCmd,
-		mount:                   basicCmd,
-		umount:                  basicCmd,
-		lsblk:                   basicCmd,
-		writeIntoDisk:           basicCmd,
-		runDryFsck:              basicCmd,
-		runFsck:                 basicCmd,
+		checkDiskAvailability:    baseCmd,
+		checkMountPathExistence:  baseCmd,
+		mkDir:                    baseCmd,
+		mount:                    baseCmd,
+		umount:                   baseCmd,
+		lsblk:                    baseCmd,
+		writeIntoDisk:            baseCmd,
+		runDryFsck:               baseCmd,
+		runFsck:                  baseCmd,
+		checkCommandAvailability: baseCmd,
 	}
 	return execC
+}
+
+func (e ExecCommandsType) CheckCommandAvailability(command string) LinuxCommands {
+	out, err := e.checkCommandAvailability(fmt.Sprintf("command -v %s", command))
+	if err != nil {
+		log.Errorf(fmt.Sprint(err) + ": " + string(out))
+		return CommandError
+	}
+	return CommandSuccess
 }
 
 func (e ExecCommandsType) CheckDiskAvailability(uuid string) LinuxCommands {
@@ -159,23 +170,6 @@ func (e ExecCommandsType) MkDir(diskPath string) LinuxCommands {
 		return CommandError
 	}
 	return PathCreated
-}
-
-func parseCommandError(name string, out []byte) LinuxCommands {
-	_out := string(out)
-	switch {
-	case strings.Contains(_out, "not mounted"):
-		log.Warnf("[%s] Disk not mounted", name)
-		return NotMounted
-	case strings.Contains(_out, "already mounted"):
-		log.Warnf("[%s] Disk already mounted", name)
-		return AlreadyMounted
-	case strings.Contains(_out, "exit status 4"):
-		log.Debugf("[%s] DryRunFsck", name)
-	case strings.Contains(_out, "exit status 1"):
-		log.Debugf("[%s] RunFsck", name)
-	}
-	return None
 }
 
 func (e ExecCommandsType) Mount(disk config.Disk) LinuxCommands {
@@ -290,4 +284,21 @@ func (e ExecCommandsType) MountCommand(disk config.Disk) LinuxCommands {
 		return CommandError
 	}
 	return e.Mount(disk)
+}
+
+func parseCommandError(name string, out []byte) LinuxCommands {
+	_out := string(out)
+	switch {
+	case strings.Contains(_out, "not mounted"):
+		log.Warnf("[%s] Disk not mounted", name)
+		return NotMounted
+	case strings.Contains(_out, "already mounted"):
+		log.Warnf("[%s] Disk already mounted", name)
+		return AlreadyMounted
+	case strings.Contains(_out, "exit status 4"):
+		log.Debugf("[%s] DryRunFsck", name)
+	case strings.Contains(_out, "exit status 1"):
+		log.Debugf("[%s] RunFsck", name)
+	}
+	return None
 }

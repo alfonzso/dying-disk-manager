@@ -1,17 +1,15 @@
 package input
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
 	"github.com/alfonzso/dying-disk-manager/pkg/config"
-	"github.com/alfonzso/dying-disk-manager/pkg/flags"
 	log "github.com/sirupsen/logrus"
 )
 
-func Manager() *config.DDMConfig {
-	filename, flag := flags.Parser()
-
+func Manager(filename string, _flag *flag.FlagSet) *config.DDMConfig {
 	f, err := os.Open("config.yaml")
 	if err == nil {
 		log.Debug("Found default config file: config.yaml")
@@ -35,7 +33,7 @@ func Manager() *config.DDMConfig {
 	}
 
 	fmt.Println("[ ERROR ] No config file given")
-	flag.Usage()
+	_flag.Usage()
 	os.Exit(1)
 	return nil
 

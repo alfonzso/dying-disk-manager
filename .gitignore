@@ -4,3 +4,4 @@ vendor
 dist/
 cmd/tst/tst.go
 cli
+*.log

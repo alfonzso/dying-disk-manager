@@ -190,9 +190,4 @@ func New(o *observer.DDMObserver, c *config.DDMConfig) *DDMData {
 	}
 	s.Start()
 	return &DDMData{s, linux, o, c}
-	// // GetCronExpr(disk.Mount.PeriodicCheck.Cron, ddmData.Common.Mount.PeriodicCheck.Cron)
-	// mount := c.Common.Mount.PeriodicCheck.Cron
-	// test := c.Common.Test.Cron
-	// return &DDMData{&DDMScheduler{Scheduler: s,CronAction: struct{  mount; Test: test}}, linux, o, c}
-	// // return &DDMData{&DDMScheduler{Scheduler: s, CronAction: CronAction{mount, test}}, linux, o, c}
 }
