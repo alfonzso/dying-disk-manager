@@ -35,7 +35,7 @@ builds:
 #       # 386: i386
 #       amd64: x86_64
 archives:
-  - id: foo
+  - id: dying-disk-manager
     name_template: >-
       {{- .ProjectName }}_
       {{- title .Os }}_
