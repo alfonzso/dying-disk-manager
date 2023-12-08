@@ -11,18 +11,28 @@ builds:
       - CGO_ENABLED=0
     goos:
       - linux
-      - windows
-      - darwin
-    main: ./cmd/ddm/ddm.go
+      # - windows
+      # - darwin
+    main: ./cmd/ddm/ddm-server.go
+    goarch:
+      - amd64
+      - arm64
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      # - windows
+      # - darwin
+    main: ./cmd/cli/cli.go
     goarch:
       - amd64
       - arm64
 archives:
   - replacements:
-      darwin: Darwin
+      # darwin: Darwin
       linux: Linux
-      windows: Windows
-      386: i386
+      # windows: Windows
+      # 386: i386
       amd64: x86_64
 checksum:
   name_template: 'checksums.txt'
