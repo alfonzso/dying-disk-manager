@@ -9,6 +9,7 @@
 builds:
   - env:
       - CGO_ENABLED=0
+    id: ddm-server
     goos:
       - linux
       # - windows
@@ -19,6 +20,7 @@ builds:
       - arm64
   - env:
       - CGO_ENABLED=0
+    id: ddm-cli
     goos:
       - linux
       # - windows
@@ -33,9 +35,19 @@ builds:
 #       linux: Linux
 #       # windows: Windows
 #       # 386: i386
-#       amd64: x86_64
+# #       amd64: x86_64
+# id: ddm-server
+# id: ddm-cli
 archives:
-  - id: dying-disk-manager
+  - id: ddm-server
+    name_template: >-
+      {{- .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end -}}
+  - id: ddm-cli
     name_template: >-
       {{- .ProjectName }}_
       {{- title .Os }}_
