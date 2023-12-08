@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (ddmData *DDMData) setupMountThread(diskData *DiskData) {
+func (ddmData *DDMData) setupMountThread(diskData DiskData) {
 
 	if RepairIsOn(diskData.Mount.Name, diskData) {
 		return
@@ -23,7 +23,7 @@ func (ddmData *DDMData) setupMountThread(diskData *DiskData) {
 	go ddmData.startMountAndWaitTillAlive(diskData)
 }
 
-func (ddmData *DDMData) startMountAndWaitTillAlive(diskData *DiskData) {
+func (ddmData *DDMData) startMountAndWaitTillAlive(diskData DiskData) {
 
 	if ddmData.ActionsJobRunning(diskData.Mount.Name, diskData.UUID, diskData.Mount.Cron) {
 		return
@@ -39,7 +39,7 @@ func (ddmData *DDMData) startMountAndWaitTillAlive(diskData *DiskData) {
 	diskData.Mount.SetToRun()
 }
 
-func (ddmData *DDMData) periodCheck(diskData *DiskData) (int, error) {
+func (ddmData *DDMData) periodCheck(diskData DiskData) (int, error) {
 	res, err := ddmData.mountPeriodWrapper(diskData)
 	go func() {
 		times := ddmData.GetJobNextRun(diskData.Mount.Name, diskData.UUID)
@@ -49,7 +49,7 @@ func (ddmData *DDMData) periodCheck(diskData *DiskData) (int, error) {
 	return res, err
 }
 
-func (ddmData *DDMData) mountPeriodWrapper(diskData *DiskData) (int, error) {
+func (ddmData *DDMData) mountPeriodWrapper(diskData DiskData) (int, error) {
 	diskData.Mount.SetToRun()
 	diskData.Mount.HealthCheck = observer.OK
 
@@ -80,11 +80,11 @@ func (ddmData *DDMData) mountPeriodWrapper(diskData *DiskData) (int, error) {
 	return 0, nil
 }
 
-func (ddmData *DDMData) ForceRemount(diskData *DiskData) linux.LinuxCommands {
-	if ddmData.Exec.UMount(*diskData.conf) != linux.UMounted {
+func (ddmData *DDMData) ForceRemount(diskData DiskData) linux.LinuxCommands {
+	if ddmData.Exec.UMount(diskData.conf) != linux.UMounted {
 		return linux.CommandError
 	}
-	if ddmData.Exec.Mount(*diskData.conf).IsFailed() {
+	if ddmData.Exec.Mount(diskData.conf).IsFailed() {
 		return linux.CantMounted
 	}
 	return linux.Mounted

@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (ddmData *DDMData) setupRepairThread(diskData *DiskData) {
+func (ddmData *DDMData) setupRepairThread(diskData DiskData) {
 	if !diskData.Repair.IsRunning() {
 		return
 	}
@@ -34,23 +34,23 @@ func (ddmData *DDMData) setupRepairThread(diskData *DiskData) {
 	}()
 }
 
-func (ddmData *DDMData) PreRepair(diskData *DiskData) linux.LinuxCommands {
+func (ddmData *DDMData) PreRepair(diskData DiskData) linux.LinuxCommands {
 	log.Debugf("[%s] PreRepair ...", diskData.Name)
 
-	if ddmData.Exec.UMount(*diskData.conf).IsFailed() {
+	if ddmData.Exec.UMount(diskData.conf).IsFailed() {
 		log.Debugf("[%s] PreRepair failed to umount disk ... ", diskData.Name)
 		return linux.CommandError
 	}
 	return linux.CommandSuccess
 }
 
-func (ddmData *DDMData) Repair(diskData *DiskData) linux.LinuxCommands {
+func (ddmData *DDMData) Repair(diskData DiskData) linux.LinuxCommands {
 	if ddmData.Exec.RunFsck(diskData.UUID).IsFailed() {
 		log.Debugf("[%s] Repair with fsck failed :( ", diskData.Name)
 		return linux.CommandError
 	}
 
-	if ddmData.Exec.Mount(*diskData.conf).IsFailed() {
+	if ddmData.Exec.Mount(diskData.conf).IsFailed() {
 		log.Debugf("[%s] Mount after repair failed :( ", diskData.Name)
 		return linux.CommandError
 	}

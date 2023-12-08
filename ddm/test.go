@@ -8,7 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (ddmData *DDMData) setupTestThread(diskData *DiskData) {
+func (ddmData *DDMData) setupTestThread(diskData DiskData) {
 	if RepairIsOn(diskData.Test.Name, diskData) {
 		return
 	}
@@ -20,7 +20,7 @@ func (ddmData *DDMData) setupTestThread(diskData *DiskData) {
 	go ddmData.startTestAndWaitTillAlive(diskData)
 }
 
-func (ddmData *DDMData) startTestAndWaitTillAlive(diskData *DiskData) {
+func (ddmData *DDMData) startTestAndWaitTillAlive(diskData DiskData) {
 	if ddmData.ActionsJobRunning(diskData.Test.Name, diskData.UUID, diskData.Test.Cron) {
 		return
 	}
@@ -35,7 +35,7 @@ func (ddmData *DDMData) startTestAndWaitTillAlive(diskData *DiskData) {
 	diskData.Test.SetToRun()
 }
 
-func (ddmData *DDMData) diskTest(diskData *DiskData) (int, error) {
+func (ddmData *DDMData) diskTest(diskData DiskData) (int, error) {
 	res, err := ddmData.testWrapper(diskData)
 	go func() {
 		times := ddmData.GetJobNextRun(diskData.Test.Name, diskData.UUID)
@@ -45,7 +45,7 @@ func (ddmData *DDMData) diskTest(diskData *DiskData) (int, error) {
 	return res, err
 }
 
-func (ddmData *DDMData) testWrapper(diskData *DiskData) (int, error) {
+func (ddmData *DDMData) testWrapper(diskData DiskData) (int, error) {
 	diskData.Test.SetToRun()
 	diskData.Test.HealthCheck = observer.OK
 

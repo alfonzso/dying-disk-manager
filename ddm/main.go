@@ -22,11 +22,11 @@ type DDMData struct {
 
 type DiskData struct {
 	*observer.DiskStat
-	conf *config.Disk
+	conf config.Disk
 }
 
-func NewDiskData(diskStat *observer.DiskStat, diskConfig config.Disk) *DiskData {
-	return &DiskData{diskStat, &diskConfig}
+func NewDiskData(diskStat *observer.DiskStat, diskConfig config.Disk) DiskData {
+	return DiskData{diskStat, diskConfig}
 }
 
 func GetCronExpr(diskCron string, commonCron string) string {
@@ -72,7 +72,7 @@ func (ddmData *DDMData) Threading() {
 	}
 }
 
-func RepairIsOn(actionName string, diskData *DiskData) bool {
+func RepairIsOn(actionName string, diskData DiskData) bool {
 	if !diskData.Repair.IsRunning() {
 		return false
 	}
@@ -120,7 +120,7 @@ func (ddmData *DDMData) GetJobNextRun(actionName, uuid string) time.Duration {
 	return time.Until(nextRuns[0]) - (5 * time.Second)
 }
 
-func IsInActiveOrDisabled(actionName string, diskData *DiskData, action observer.Action) bool {
+func IsInActiveOrDisabled(actionName string, diskData DiskData, action observer.Action) bool {
 	if diskData.IsInActive() || action.DisabledByAction {
 		log.Warningf("[%s] %sThread => Disk deactivated => active: %t, disabledBy: %t",
 			diskData.Name, actionName, diskData.Active, action.DisabledByAction,
@@ -157,7 +157,7 @@ func StartThreads(as []*observer.Action) {
 func (ddmData *DDMData) SetupCron(
 	taskName string,
 	function any,
-	diskData *DiskData,
+	diskData DiskData,
 	cronExpr string,
 ) (int, error) {
 	_, err := ddmData.Scheduler.NewJob(
