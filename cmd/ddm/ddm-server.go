@@ -18,6 +18,8 @@ func main() {
 
 	fmt.Println("Test string to test everything")
 	fmt.Println("Test string to test everything 1")
+	fmt.Println("Test string to test everything 2")
+
 
 	common.NewLogrus()
 
