@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -14,6 +15,8 @@ import (
 )
 
 func main() {
+
+	fmt.Println("Test string to test everything")
 
 	common.NewLogrus()
 
