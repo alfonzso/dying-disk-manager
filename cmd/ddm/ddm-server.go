@@ -17,6 +17,7 @@ import (
 func main() {
 
 	fmt.Println("Test string to test everything")
+	fmt.Println("Test string to test everything 1")
 
 	common.NewLogrus()
 
